@@ -2,6 +2,7 @@
 model_name: 'CNN'                       # name of model weight and history file
 save_weight: True                       # to save model weight or not
 device: -1                              # -1 means cpu, 0 or other positive value is CUDA index of your computer
+data_path: './data'                     # path of training data
 
 # model
 class_num: 10                           # category numbers of the network

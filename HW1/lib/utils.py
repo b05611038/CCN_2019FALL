@@ -3,7 +3,8 @@ import yaml
 import pickle
 
 
-__all__ = ['save_object', 'load_pickle_obj', 'load_json_obj', 'load_config', 'Recoder']
+__all__ = ['save_object', 'load_pickle_obj', 'load_json_obj', 'load_config', 'positive_int_check', 
+        'Recorder']
 
 
 def save_object(fname, obj, mode = 'pickle'):
@@ -52,6 +53,14 @@ def load_config(fname):
     f.close()
     return content
 
+def positive_int_check(arg, name):
+    if not isinstance(arg, int):
+        raise TypeError('Argument:', name, 'should be an integer.')
+
+    if arg <= 0:
+        raise ValueError('Argument:', name, 'should be a positive value.')
+
+    return arg
 
 class Recorder(object):
     # Recoder of recording whole history in traninig.
