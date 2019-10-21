@@ -1,0 +1,31 @@
+# logger
+model_name: 'CNN'                       # name of model weight and history file
+save_weight: True                       # to save model weight or not
+device: -1                              # -1 means cpu, 0 or other positive value is CUDA index of your computer
+
+# model
+class_num: 10                           # category numbers of the network
+conv_layers:
+  layer_num: 4                          # how many layers in convolutional layer
+  filter_num:                           # filter numbers in each layer
+    - 32
+    - 32
+    - 64
+    - 64
+  filter_size:                          # filter size in each layers
+    - 3
+    - 3
+    - 3
+    - 3
+
+# training setting
+epochs: 20                              # maximum number of training epoch
+batch_size: 128                         # how many image pass through model when doing a iteration
+
+
+# optimizer setting
+optim:
+  name: 'SGD'                           # optimizer selections
+  args:                                 # args for each optimizer
+    lr: 0.01
+    momentum: 0.9
