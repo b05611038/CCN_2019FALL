@@ -15,7 +15,7 @@ def init_parser():
 
 if __name__ == '__main__':
     opt = init_parser()
-    trainer = TorchTrainer(opt)
+    trainer = TorchTrainer(opt.config)
     trainer.train()
 
 

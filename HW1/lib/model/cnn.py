@@ -11,6 +11,8 @@ def _padding_cal(kernel_size):
 
 class CNN(nn.Module):
     def __init__(self, num_classes, num_layers, num_filters, kernel_sizes):
+        super(CNN, self).__init__()
+
         self.num_classes = positive_int_check(num_classes, 'num_classes')
         self.num_layers = positive_int_check(num_layers, 'num_layers')
 
@@ -20,15 +22,15 @@ class CNN(nn.Module):
         self.kernel_sizes = kernel_sizes
 
         self.conv_net = nn.Sequential()
-        self.conv_net.add_modules('conv1', nn.Conv2d(1, num_filters[0], kernel_sizes[0],
+        self.conv_net.add_module('conv1', nn.Conv2d(1, num_filters[0], kernel_sizes[0],
                 padding = _padding_cal(kernel_sizes[0])))
-        self.conv_net.add_modules('relu1', nn.ReLU())
+        self.conv_net.add_module('relu1', nn.ReLU())
         for i in range(1, num_layers):
-            self.conv_net.add_modules('conv' + str(i + 1), nn.Conv2d(num_filters[i] - 1, num_filters[i],
+            self.conv_net.add_module('conv' + str(i + 1), nn.Conv2d(num_filters[i - 1], num_filters[i],
                     kernel_sizes[i], padding = _padding_cal(kernel_sizes[i])))
-            self.conv_net.add_modules('relu' + str(i + 1), nn.ReLU())
+            self.conv_net.add_module('relu' + str(i + 1), nn.ReLU())
 
-        self.avg_pool = nn.AdaptiveAvgPool2d(num_filters[-1])
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
         self.fc = nn.Linear(num_filters[-1], num_classes)
 
     def forward(self, x):

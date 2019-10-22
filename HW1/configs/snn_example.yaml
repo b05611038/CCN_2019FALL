@@ -9,13 +9,13 @@ class_num: 10                           # category numbers of the network
 conv_layers:
   layer_num: 4                          # how many layers in convolutional layer
   filter_num:                           # filter numbers in each layer
+    - 16
+    - 16
     - 32
     - 32
-    - 64
-    - 64
   filter_size:                          # filter size in each layers
-    - 3
-    - 3
+    - 5
+    - 5
     - 3
     - 3
 

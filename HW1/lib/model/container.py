@@ -19,6 +19,7 @@ class Container(object):
             raise ValueError('Container object only support for pytorch model or nengo model.')
 
         self.model_type = model_type
+        self.model = self._load_model(model_path, model_type)
 
     def inference(self, image):
         if self.model_type == 'torch':
@@ -31,7 +32,7 @@ class Container(object):
         if model_type == 'torch':
             model = CNN(state['args']['num_classes'], state['args']['num_layers'],
                     state['args']['num_filters'], state['args']['kernel_sizes'])
-            model.load_state_dict(model['weight'])
+            model.load_state_dict(state['weight'])
         elif model_type == 'nengo':
             pass
 

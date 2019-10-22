@@ -27,8 +27,8 @@ class TorchMNIST(Dataset):
         return self.labels.shape[0]
 
     def __getitem__(self, index):
-        image = self.transform(self.images[index])
-        label = torch.tensor(label[index]).long()
+        image = self.transform(Image.fromarray(self.images[index]))
+        label = torch.tensor(self.labels[index]).long()
         return image, label
 
 
