@@ -4,6 +4,8 @@ import nengo
 import numpy as np
 import tensorflow as tf 
 
+import lib.model
+
 from lib.utils import *
 from lib.model.cnn import CNN
 

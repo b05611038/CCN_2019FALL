@@ -20,7 +20,7 @@ conv_layers:
     - 3
 
 # training setting
-epochs: 1                               # maximum number of training epoch
+epochs: 20                              # maximum number of training epoch
 batch_size: 1024                        # how many image pass through model when doing a iteration
 
 
