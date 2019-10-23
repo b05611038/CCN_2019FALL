@@ -24,6 +24,7 @@ class NengoDLDataLoader(object):
            raise RuntimeError('Index overflow !! Check NengoDLDataLoader.help() may be helpful.')
        elif (self.iter_index + self.batch_size) > len(self.dataset) and self.iter_index < len(self.dataset):
            indices = self.shuffled_index[self.iter_index:]
+           indices = self._padding(indices)
            self.iter_index += self.batch_size
        else:
            indices = self.shuffled_index[self.iter_index: (self.iter_index + self.batch_size)]
@@ -38,7 +39,7 @@ class NengoDLDataLoader(object):
        self.shuffled_index = self._shuffle_indexing(self.shuffle)
 
        return self.__len__()
-
+ 
     def help(self):
         print('Usage:')
         print('for i in range(loader.batch()):')
@@ -47,6 +48,11 @@ class NengoDLDataLoader(object):
 
     def __len__(self):
         return (len(self.dataset) // self.batch_size) + 1
+
+    def _padding(self, indices):
+        padding_indices = [random.randint(0, len(self.dataset) - 1) for i in range(self.batch_size - len(indices))]
+        indices += padding_indices
+        return indices
 
     def _shuffle_indexing(self, shuffle):
         index = [i for i in range(len(self.dataset))]
