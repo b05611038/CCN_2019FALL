@@ -8,6 +8,7 @@ import lib.model
 
 from lib.utils import *
 from lib.model.cnn import CNN
+from lib.model.snn import SNN
 
 
 class Container(object):
@@ -29,14 +30,27 @@ class Container(object):
         elif self.model_type == 'nengo':
             pass
 
-    def _load_model(self, path, model_type):
-        state = load_pickle_obj(path)
+    def _load_model(self, save_dir, model_type):
+        state = load_pickle_obj(os.path.join(save_dir, save_dir + '.pkl'))
         if model_type == 'torch':
-            model = CNN(state['args']['num_classes'], state['args']['num_layers'],
-                    state['args']['num_filters'], state['args']['kernel_sizes'])
+            model = CNN(
+                    state['args']['num_classes'],
+                    state['args']['num_layers'],
+                    state['args']['num_filters'],
+                    state['args']['kernel_sizes']
+                    )
             model.load_state_dict(state['weight'])
         elif model_type == 'nengo':
-            pass
+            model = SNN(
+                    state['num_classes'],
+                    state['num_layers'],
+                    state['num_filters'],
+                    state['kernel_sizes'],
+                    n_steps = state['n_steps'],
+                    minibatch_size = state['minibatch_size']
+                    )
+
+            model.sim.load_params(os.path.join(save_dir, save_dir))
 
         return model
 

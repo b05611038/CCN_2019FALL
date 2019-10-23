@@ -1,7 +1,14 @@
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
+
 import os
+import sys
 import json
 import yaml
 import pickle
+import nengo
 
 
 __all__ = ['save_object', 'load_pickle_obj', 'load_json_obj', 'load_config', 'positive_int_check', 
@@ -62,6 +69,7 @@ def positive_int_check(arg, name):
         raise ValueError('Argument:', name, 'should be a positive value.')
 
     return arg
+
 
 class Recorder(object):
     # Recoder of recording whole history in traninig.

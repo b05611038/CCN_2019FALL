@@ -1,11 +1,11 @@
 # logger
-model_name: 'CNN'                       # name of model weight and history file
+model_name: 'SNN'                       # name of model weight and history file
 save_weight: True                       # to save model weight or not
-device: -1                              # -1 means cpu, 0 or other positive value is CUDA index of your computer
 data_path: './data'                     # path of training data
 
 # model
 class_num: 10                           # category numbers of the network
+sample_time: 30                         # points sample form SNN output neural
 conv_layers:
   layer_num: 4                          # how many layers in convolutional layer
   filter_num:                           # filter numbers in each layer
@@ -21,12 +21,12 @@ conv_layers:
 
 # training setting
 epochs: 20                              # maximum number of training epoch
-batch_size: 128                         # how many image pass through model when doing a iteration
+minibatch_size: 1024                    # how many image pass through model when doing a iteration
 
 
 # optimizer setting
 optim:
   name: 'SGD'                           # optimizer selections
   args:                                 # args for each optimizer
-    lr: 0.01
+    learning_rate: 0.01
     momentum: 0.9
