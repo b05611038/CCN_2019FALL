@@ -10,7 +10,7 @@ from lib.utils import *
 from lib.data.mnist import MNIST
 
 
-__all__ = ['NengoDLDataset', 'TorchMNIST', 'NengoMNIST']
+__all__ = ['NengoDLDataset', 'TorchMNIST', 'TorchInference', 'NengoMNIST']
 
 
 class NengoDLDataset(object):
@@ -45,6 +45,21 @@ class TorchMNIST(Dataset):
         image = self.transform(Image.fromarray(self.images[index]))
         label = torch.tensor(self.labels[index]).long()
         return image, label
+
+
+class TorchInference(Dataset):
+    def __init__(self, data, transform = None):
+        self.data = data
+
+        if transform is None:
+            self.transform = tfs.Compose([tfs.ToTensor()])
+
+    def __len__(self):
+        return self.data.shape[0]
+
+    def __getitem__(self, index):
+        image = self.transform(Image.fromarray(self.data[index]))
+        return image
 
 
 class NengoMNIST(NengoDLDataset):

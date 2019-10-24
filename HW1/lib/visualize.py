@@ -7,38 +7,17 @@ import matplotlib.pyplot as plt
 from lib.utils import *
 
 
-class TorchTrainingPlot(object):
-    def __init__(self, names, file_name = None, save = True,
-            fig_size = (10, 4)):
-        self.names = names
+__all__ = ['TrainingPlot', 'TorchTrainingPlot', 'NengoTrainingPlot']
+
+
+class TrainingPlot(object):
+    def __init__(self, file_name, save, fig_size):
+        self.file_name = file_name
         self.save = save
         self.fig_size = fig_size
 
-        self.file_names = self._get_filenames(self.names, file_name)
-        self.history, self.epochs = self._read_history(self.file_names)
-
-    def plot(self, select):
-        if select == 'epoch-train_loss':
-            self._plot(np.arange(self.epochs + 1)[1: ], self.history, 'train_loss',
-                    self.names, 'epoch-train_loss', 'epoch-train_loss',
-                    ('epoch', 'train_loss'), save = self.save)
-        elif select == 'epoch-test_loss':
-            self._plot(np.arange(self.epochs + 1)[1: ], self.history, 'test_loss',
-                    self.names, 'epoch-test_loss', 'epoch-test_loss',
-                    ('epoch', 'test_loss'), save = self.save)
-        elif select == 'epoch-test_acc':
-            self._plot(np.arange(self.epochs + 1)[1: ], self.history, 'test_accuracy',
-                    self.names, 'epoch-test_acc', 'epoch-test_acc',
-                    ('epoch', 'test_acc'), save = self.save)
-        elif select == 'all':
-            self.plot('epoch-train_loss')
-            self.plot('epoch-test_loss')
-            self.plot('epoch-test_acc')
-        else:
-            print(select, 'is not in plotting selections.')
-            print('[epoch-train_loss, epoch-test_loss, epoch-test_acc, all] is avaliable.')
-
-        return None
+    def plot(self):
+        raise NotImplementedError()
 
     def _plot(self, x, his, key, legend, save_name, title, axis_name, save = True):
         plt.figure(figsize = self.fig_size)
@@ -76,8 +55,64 @@ class TorchTrainingPlot(object):
                 files.append(os.path.join(name, name + '.csv'))
         else:
             for name in name_list:
-                files.append(os.path.join(name, name))
+                files.append(os.path.join(name, self.file_name))
 
         return files
+
+
+class TorchTrainingPlot(TrainingPlot):
+    def __init__(self, names, file_name = None, save = True,
+            fig_size = (10, 4)):
+        super(TorchTrainingPlot, self).__init__(file_name, save, fig_size)
+
+        self.names = names
+
+        self.file_names = self._get_filenames(self.names, file_name)
+        self.history, self.epochs = self._read_history(self.file_names)
+
+    def plot(self, select):
+        if select == 'epoch-train_loss':
+            self._plot(np.arange(self.epochs + 1)[1: ], self.history, 'train_loss',
+                    self.names, 'epoch-train_loss', 'epoch-train_loss',
+                    ('epoch', 'train_loss'), save = self.save)
+        elif select == 'epoch-test_loss':
+            self._plot(np.arange(self.epochs + 1)[1: ], self.history, 'test_loss',
+                    self.names, 'epoch-test_loss', 'epoch-test_loss',
+                    ('epoch', 'test_loss'), save = self.save)
+        elif select == 'epoch-test_acc':
+            self._plot(np.arange(self.epochs + 1)[1: ], self.history, 'test_accuracy',
+                    self.names, 'epoch-test_acc', 'epoch-test_acc',
+                    ('epoch', 'test_acc'), save = self.save)
+        elif select == 'all':
+            self.plot('epoch-train_loss')
+            self.plot('epoch-test_loss')
+            self.plot('epoch-test_acc')
+        else:
+            print(select, 'is not in plotting selections.')
+            print('[epoch-train_loss, epoch-test_loss, epoch-test_acc, all] is avaliable.')
+
+
+class NengoTrainingPlot(TrainingPlot):
+    def __init__(self, names, file_name = None, save = True,
+            fig_size = (10, 4)):
+        super(TorchTrainingPlot, self).__init__(file_name, save, fig_size)
+
+        self.names = names
+
+        self.file_names = self._get_filenames(self.names, file_name)
+        self.history, self.epochs = self._read_history(self.file_names)
+
+    def plot(self, select):
+        if select == 'epoch-train_loss':
+            self._plot(np.arange(self.epochs + 1)[1: ], self.history, 'train_loss',
+                    self.names, 'epoch-train_loss', 'epoch-train_loss',
+                    ('epoch', 'train_loss'), save = self.save)
+        elif select == 'all':
+            self.plot('epoch-train_loss')
+        else:
+            print(select, 'is not in plotting selections.')
+            print('[epoch-train_loss, all] is avaliable.')
+
+        return None
 
 

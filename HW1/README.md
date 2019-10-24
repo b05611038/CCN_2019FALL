@@ -1,6 +1,12 @@
 # HW1
 
-## Training Commands
+In this part we compare differnet depth of CNN and SpikeCNN in MNIST dataset.
+
+## Quick setup
+
+Temporarily no
+
+## Training part
 
 There were two different model was implemented, Convolutional neural network and SpikeCNN.
 
@@ -18,6 +24,22 @@ In this part still have some difficulties, thus, API for SpikeCNN is only for tr
 python3 train_snn.py ./configs/snn_example.yaml
 ```
 
+## Testing part
+
+Please store your data in ./data before inference
+
+### CNN (PyTorch)
+
+```
+python3 eval.py CNN torch
+```
+
+### SpikeCNN (NengoDL, Tensorflow)
+
+```
+python3 eval.py SNN nengo
+```
+
 ## Visualize part
 
 For visualize training history and other comparsion plot
@@ -31,3 +53,4 @@ python3 plot_cnn_history.py Model1FolderName Model2FolderName ... all
 ### SpikeCNN (NengoDL, Tensorflow)
 
 Temporarily no
+

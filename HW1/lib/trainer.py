@@ -2,6 +2,7 @@ import os
 import time
 import torch
 import nengo
+import nengo_dl
 import numpy as np
 import tensorflow as tf
 

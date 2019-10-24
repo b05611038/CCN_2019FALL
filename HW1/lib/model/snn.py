@@ -61,6 +61,7 @@ class SNN(object):
         pulse, origin_size = self._image_to_pulse(x)
         self.sim.run_steps(self.n_steps, data = pulse)
         output = self.sim.data[self.out_p_filt]
+        output = np.mean(output, axis = 1)
 
         if origin_size is not None:
             output = output[: origin_size]
