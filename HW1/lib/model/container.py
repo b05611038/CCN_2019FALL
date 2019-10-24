@@ -1,8 +1,14 @@
 import os
-import torch
 import nengo
 import numpy as np
 import tensorflow as tf 
+
+import torch
+import torchvision
+import torch.cuda as cuda
+import torchvision.transforms as tfs 
+
+from PIL import Image
 
 import lib.model
 
@@ -24,9 +30,12 @@ class Container(object):
         self.model_type = model_type
         self.model = self._load_model(model_path, model_type)
 
-    def inference(self, image):
+    def inference(self, image, transforms = None):
         if self.model_type == 'torch':
-            pass
+            #if transforms is None:
+            #    transform = tfs.Compose([tfs.ToTensor()])
+            pass    
+            
         elif self.model_type == 'nengo':
             pass
 
@@ -40,6 +49,8 @@ class Container(object):
                     state['args']['kernel_sizes']
                     )
             model.load_state_dict(state['weight'])
+            self._init_torch_device()
+            model = model.to(self.device)
         elif model_type == 'nengo':
             model = SNN(
                     state['num_classes'],
@@ -54,4 +65,17 @@ class Container(object):
 
         return model
 
+    def _init_torch_device(self):
+        # select training environment and device
+        print('Init training device and environment ...')
+        if cuda.is_available():
+            torch.backends.cudnn.benchmark = True
+            cuda.set_device(0)
+            training_device = torch.device('cuda:' + str(0))
+            print('Envirnment setting done, using device: cuda:' + str(0))
+        else:
+            training_device = torch.device('cpu')
+            print('Envirnment setting done, using device: cpu')
+
+        return training_device
 

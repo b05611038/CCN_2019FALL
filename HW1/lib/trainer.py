@@ -198,11 +198,8 @@ class NengoDLTrainer(object):
         test_set = NengoMNIST(cfg['data_path'], mode = 'test')
         interface = self.model.train_interface()
         optim = self._init_optimizer(cfg)
-        epochs = cfg['epochs']
-        for i in range(epochs):
-            print('Start training epoch: ', i + 1, ' ...')
-            interface = self._epoch(interface, optim, cfg, train_set, test_set)
-            self.model.load_trained(interface)
+        interface = self._large_epoch(interface, optim, cfg, train_set, test_set)
+        self.model.load_trained(interface)
 
         self.recorder.write(self.save_dir, cfg['model_name'])
 
@@ -226,8 +223,9 @@ class NengoDLTrainer(object):
         model.sim.save_params(os.path.join(self.save_dir, name))
         return None
 
-    def _epoch(self, interface, optim, cfg, train_set, test_set = None):
+    def _large_epoch(self, interface, optim, cfg, train_set, test_set = None):
         minibatch_size = cfg['minibatch_size']
+        epochs = cfg['epochs']
         dataloader = NengoDLDataLoader(train_set, batch_size = minibatch_size, shuffle = True)
         train_loss = []
         for i in range(dataloader.batch()):
@@ -238,7 +236,8 @@ class NengoDLTrainer(object):
             train_loss.append(loss)
 
             interface['simulator'].train(data, optim, shuffle = False,
-                    objective = {interface['output']: self._objective})
+                    objective = {interface['output']: self._objective},
+                    n_epochs = epochs)
 
         train_loss = np.mean(np.array(train_loss))
         if test_set is not None:
