@@ -47,7 +47,10 @@ class NengoDLDataLoader(object):
         return None
 
     def __len__(self):
-        return (len(self.dataset) // self.batch_size) + 1
+        if len(self.dataset) % self.batch_size != 0:
+            return (len(self.dataset) // self.batch_size) + 1
+        else:
+            return len(self.dataset) // self.batch_size
 
     def _padding(self, indices):
         padding_indices = [random.randint(0, len(self.dataset) - 1) for i in range(self.batch_size - len(indices))]
