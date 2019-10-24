@@ -50,7 +50,6 @@ class Container(object):
                 self._load_model(self.model_name, self.model_type)
 
             outcome = self.model(image)
-            self.sim.close()
             self.nengo_reload = True
 
         if mode == 'numpy':
