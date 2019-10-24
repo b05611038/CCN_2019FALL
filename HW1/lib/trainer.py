@@ -240,7 +240,7 @@ class NengoDLTrainer(object):
             interface['simulator'].train(data, optim, shuffle = False,
                     objective = {interface['output']: self._objective})
 
-        train_loss = np.mean(np.array(train_loss))
+        #train_loss = np.mean(np.array(train_loss))
         if test_set is not None:
             print('\nCalculating testing set ...\n')
 

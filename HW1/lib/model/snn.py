@@ -109,8 +109,8 @@ class SNN(object):
 
             x = nengo_dl.tensor_layer(x, tf.layers.average_pooling2d,
                     shape_in = (self.input_size[0], self.input_size[1], channel_each_layer[-1]),
-                    pool_size = (self.input_size[0], self.input_size[1]), strides = 1,
-                    padding = 'valid')
+                    pool_size = (self.input_size[0], self.input_size[1]),
+                    strides = (self.input_size[0], self.input_size[1]))
 
             x = nengo_dl.tensor_layer(x, tf.layers.dense, units = num_classes)
             out_p = nengo.Probe(x)
