@@ -2,7 +2,17 @@
 
 In this part we compare differnet depth of CNN and SpikeCNN in MNIST dataset.
 
-## Quick setup
+## Setup
+
+PLease ensure that you have tensorflow(1.14.0 recommended), nengo, nengo_dl, and pytorch. <br />
+Please download MNIST from Kaggle. [link](https://www.kaggle.com/oddrationale/mnist-in-csv) <br />
+Then unzip it into ./data directory
+
+### Quick setup for Mac OS / Linux
+
+Temporarily no
+
+### Quick setup for Windows
 
 Temporarily no
 
