@@ -93,26 +93,33 @@ class TorchTrainingPlot(TrainingPlot):
 
 
 class NengoTrainingPlot(TrainingPlot):
-    def __init__(self, names, file_name = None, save = True,
+    def __init__(self, names, batch_size = 2000, file_name = None, save = True,
             fig_size = (10, 4)):
-        super(TorchTrainingPlot, self).__init__(file_name, save, fig_size)
+        super(NengoTrainingPlot, self).__init__(file_name, save, fig_size)
 
         self.names = names
+        self.batch_size = batch_size
 
         self.file_names = self._get_filenames(self.names, file_name)
         self.history, self.epochs = self._read_history(self.file_names)
+        self.history = self._devide_loss(self.history, batch_size)
 
     def plot(self, select):
-        if select == 'epoch-train_loss':
+        if select == 'step-train_loss':
             self._plot(np.arange(self.epochs + 1)[1: ], self.history, 'train_loss',
-                    self.names, 'epoch-train_loss', 'epoch-train_loss',
-                    ('epoch', 'train_loss'), save = self.save)
+                    self.names, 'step-train_loss', 'step-train_loss',
+                    ('step', 'train_loss'), save = self.save)
         elif select == 'all':
-            self.plot('epoch-train_loss')
+            self.plot('step-train_loss')
         else:
             print(select, 'is not in plotting selections.')
-            print('[epoch-train_loss, all] is avaliable.')
+            print('[step-train_loss, all] is avaliable.')
 
         return None
 
+    def _devide_loss(self, history, batch_size):
+        new = []
+        for obj in history:
+            new.append(obj / batch_size)
 
+        return new
