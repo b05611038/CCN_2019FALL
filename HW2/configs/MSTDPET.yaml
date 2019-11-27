@@ -1,0 +1,25 @@
+# logger
+name: 'MSTDPET'
+dataset: 'MNIST'
+device: -1
+n_workers: 0
+seed: 0
+epochs: 1
+
+# paras
+time: 250
+dt: 1
+intensity: 128
+update_interval: 250
+
+# network paras
+network:
+  n_neurons: 100
+  learning_rule: 'MSTDPET'
+  n_inpt: 784
+  exc: 22.5
+  inh: 120
+  dt: 1
+  norm: 78.4
+  theta_plus: 0.05
+  inpt_shape: !!python/tuple [1, 28, 28]

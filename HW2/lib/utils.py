@@ -5,7 +5,7 @@ import yaml
 import pickle
 
 
-__all__ = ['save_object', 'load_pickle_obj', 'load_json_obj', 'Recorder']
+__all__ = ['save_object', 'load_pickle_obj', 'load_json_obj', 'load_config', 'Recorder']
 
 
 def save_object(fname, obj, mode = 'pickle'):
@@ -47,6 +47,12 @@ def load_json_obj(fname):
 
     with open(fname, 'r') as in_file:
         return json.loads(in_file.read())
+
+def load_config(fname):
+    f = open(fname)
+    content = yaml.load(f, Loader = yaml.FullLoader)
+    f.close()
+    return content
 
 
 class Recorder(object):
