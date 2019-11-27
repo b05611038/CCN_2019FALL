@@ -1,0 +1,7 @@
+numpy
+pyyaml
+pandas
+tqdm
+torch
+torchvision
+bindsnet

@@ -4,6 +4,7 @@ import time as T
 import numpy as np
 
 import torch
+import torch.cuda as cuda
 import torchvision
 import torchvision.transforms as tfs
 from torch.utils.data import DataLoader
@@ -203,7 +204,7 @@ class SNNTrainer(object):
             dataset = MNIST(
                 PoissonEncoder(time = cfg['time'], dt = cfg['dt']),
                 None,
-                root=os.path.join("..", "..", "data", "MNIST"),
+                root=os.path.join("data", "MNIST"),
                 download=True,
                 transform = tfs.Compose(
                     [tfs.ToTensor(), tfs.Lambda(lambda x: x * cfg['intensity'])]
