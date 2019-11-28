@@ -117,18 +117,6 @@ class SNNEvaluator(object):
             / len(label_tensor)
         )
 
-        # Compute network accuracy according to available classification strategies.
-        accuracy["all"].append(
-            100
-            * torch.sum(label_tensor.long() == all_activity_pred).item()
-            / len(label_tensor)
-        )
-        accuracy["proportion"].append(
-            100
-            * torch.sum(label_tensor.long() == proportion_pred).item()
-            / len(label_tensor)
-        )
-
         print(
             "\nAll activity accuracy: %.2f (last), %.2f (average), %.2f (best)"
             % (
