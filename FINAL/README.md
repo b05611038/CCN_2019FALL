@@ -4,7 +4,11 @@ Final project of computational cognitive neuroscience
 
 ## Setup
 
-Temporarily no
+Some needed library
+
+```
+pip3 install -r requirements.txt
+```
 
 ## Training
 

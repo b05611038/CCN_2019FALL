@@ -3,20 +3,24 @@ import numpy as np
 
 import torch
 import bindsnet
-from bindsnet.environment import GymEnvironment
-
-from .utils import *
+from bindsnet.environment import Environment
 
 
-__all__ = ['ANNEnvironment', 'SNNEnvironment']
+__all__ = ['GymEnvironment']
 
 
-class ANNEnvironment(object):
-    def __init__(self, env_name):
+class GymEnvironment(Environment):
+    def __init__(self, env_name = 'Pong-v0', train = True, **kwargs):
         self.env = gym.make(env_name)
+        self.train = train
+        if not self.train:
+            # fix the testing envirnment
+            self.seed(0)
 
         self.action_space = self.env.action_space
         self.observation_space = self.env.observation_space
+
+        self.clip_rewards = kwargs.get("clip_rewards", False)
 
     def seed(self, seed):
         '''
@@ -26,11 +30,16 @@ class ANNEnvironment(object):
         return None
 
     def reset(self):
+        self.history = {'observations': [], 'actions': [], 'rewards': []}
         observation = self.env.reset()
+        self.history['observations'].append(observation)
         return np.array(observation)
 
     def close(self):
         self.env.close()
+        return None
+
+    def preprocess(self):
         return None
 
     def step(self, action):
@@ -46,12 +55,24 @@ class ANNEnvironment(object):
         if not self.env.action_space.contains(action):
             raise ValueError('Ivalid action!!')
 
-        observation, reward, done, info = self.env.step(action)
+        self.history['actions'].append(action)
 
-        return np.array(observation).astype('uint8'), reward, done, info
+        observation, reward, done, info = self.env.step(action)
+        observation = np.array(observation)
+        self.history['observations'].append(observation)
+
+        if self.clip_rewards:
+            reward = np.sign(reward)
+
+        self.history['rewards'].append(reward)
+
+        return observation, reward, done, info
 
     def render(self):
         return self.env.render(mode = 'rgb_array')
+
+    def get_history(self):
+        return self.history
 
     def get_action_space(self):
         return self.action_space
@@ -61,21 +82,5 @@ class ANNEnvironment(object):
 
     def get_random_action(self):
         return self.action_space.sample()
-
-
-class SNNEnvironment(GymEnvironment):
-    def __init__(self, env_name):
-        super(SNNEnvironment, self).__init__(env_name)
-
-        self.observation_space = self.env.observation_space
-
-    def seed(self, seed):
-        '''
-        Control the randomness of the environment
-        '''
-        self.env.seed(seed)
-
-    def render(self):
-        return self.env.render(mode = 'rgb_array')
 
 
