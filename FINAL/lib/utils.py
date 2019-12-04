@@ -4,6 +4,7 @@ import json
 import yaml
 import pickle
 
+import lib
 
 __all__ = ['save_object', 'load_pickle_obj', 'load_json_obj', 'load_config', 'Recorder']
 
