@@ -1,19 +1,23 @@
 import os
 import sys
+import time
 
 import numpy as np
 
 import torch
-
+import torch.cuda as cuda
 import bindsnet
 
-from ..utils import *
+import lib
+from lib.utils import *
+from lib.agent import PongAgent
+from lib.trainer.pipeline import PongPipeline 
 
 
-__all__ = ['SNNBaseTrainer']
+__all__ = ['SNNTrainer']
 
 
-class SNNBaseTrainer(object):
+class SNNTrainer(object):
     def __init__(self):
         pass
 

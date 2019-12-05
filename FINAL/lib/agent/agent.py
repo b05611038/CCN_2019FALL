@@ -17,8 +17,16 @@ from lib.agent.snn import SNN
 __all__ = ['PongAgent', 'load_agent']
 
 
-def load_agent(state):
-    pass
+def load_agent(path):
+    state = load_pickle_obj(path)
+    if state['type'] != 'PongAgent':
+        raise TypeError(path, ' is not a file of Agent object')
+
+    agent = PongAgent(state['args'])
+    agent.model = state['model']
+    agent.model = agent.model.to(agent.device)
+    return agnet
+
 
 class PongAgent(Agent):
     def __init__(self, name, model_type, model_config, preprocess_config, device, **kwargs):
@@ -51,8 +59,20 @@ class PongAgent(Agent):
         save_object(os.path.join(directory, self.name), state)
         return None
 
-    def load(self):
-        raise NotImplementedError()
+    def load(self, path):
+        state = load_pickle_obj(path)
+        if state['type'] != 'PongAgent':
+            raise TypeError(path, ' is not a file of Agent object')
+
+        self.model_type = state['args']['model_type']
+        self.model_config = state['args']['model_config']
+        self.transform = Transform(state['args']['preprocess_config'], self.device)
+        self.model = state['model']
+        return None
+
+    def rename(self, new_name):
+        self.name = new_name
+        return None
 
     def eval(self):
         self.model = self.model.eval()
@@ -69,7 +89,7 @@ class PongAgent(Agent):
                 raise RuntimeError('Please insert init memory before playing a game.')
 
         self.model = self.model.eval()
-        processed = self._preprocess(observation)
+        processed = self.preprocess(observation)
         processed = processed.to(self.device)
         input_processed = processed.unsqueeze(0)
         output, _ = self.model(input_processed)
@@ -84,6 +104,12 @@ class PongAgent(Agent):
         observation = self._preprocess(observation, mode = 'init')
         self.memory = observation.to(self.device)
         return None
+
+    def preprocess(self, observation, mode = 'normal'):
+        if mode == 'normal':
+            return self.transform(observation, self.memory)
+        elif mode == 'init':
+            return self.transform.insert_init_memory(observation)
 
     def _decode_model_output(self, output, mode = 'sample'):
         if mode == 'argmax':
@@ -104,12 +130,6 @@ class PongAgent(Agent):
                 action_index = action.cpu().detach().numpy()[0]
                 action = self.valid_action[action_index]
                 return action
-
-    def _preprocess(self, observation, mode = 'normal'):
-        if mode == 'normal':
-            return self.transform(observation, self.memory)
-        elif mode == 'init':
-            return self.transform.insert_init_memory(observation)
 
     def _check_memory(self):
         if len(self.memory) > self.max_memory_size:
