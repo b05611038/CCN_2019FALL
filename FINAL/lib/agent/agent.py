@@ -1,3 +1,4 @@
+import os
 import random
 import numpy as np
 
@@ -5,6 +6,7 @@ import torch
 import torch.cuda as cuda
 from torch.distributions import Categorical
 
+import lib
 from lib.utils import *
 from lib.agent.base import Agent
 from lib.agent.preprocess import Transform
@@ -12,12 +14,127 @@ from lib.agent.ann import ANN
 from lib.agent.snn import SNN
 
 
-__all__ = ['PongAgent']
+__all__ = ['PongAgent', 'load_agent']
 
+
+def load_agent(state):
+    pass
 
 class PongAgent(Agent):
-    def __init__(self):
-        super(PongAgent, self).__init__()
-        pass
+    def __init__(self, name, model_type, model_config, preprocess_config, device, **kwargs):
+        super(PongAgent, self).__init__(name, 'Pong-v0')
+
+        self.device = init_torch_device(device)
+
+        self.model = self._init_model(model_type, model_config)
+        self.transform = Transform(preprocess_config, self.device)
+
+        self.valid_action = kwargs.get('valid_action', None)
+        self.action = self._init_action(self.valid_action)
+
+        self.model_type = model_type
+        self.model_config = model_config
+        self.preprocess_config = preprocess_config
+        self.memory = None
+        
+    def save(self, directory):
+        state = {'type': 'PongAgent'}
+
+        state['args'] = {
+                'name': self.name,
+                'model_type': self.model_type,
+                'model_config': self.model_config,
+                'preprocess_config': self.preprocess_config,
+                }
+
+        state['model'] = self.model
+        save_object(os.path.join(directory, self.name), state)
+        return None
+
+    def load(self):
+        raise NotImplementedError()
+
+    def eval(self):
+        self.model = self.model.eval()
+        return None
+
+    def train(self):
+        self.model = self.model.train()
+        return None
+
+    def make_action(self)
+        #return processed model observation and action
+        if self.observation_preprocess['minus_observation'] == True:
+            if self.memory is None:
+                raise RuntimeError('Please insert init memory before playing a game.')
+
+        self.model = self.model.eval()
+        processed = self._preprocess(observation)
+        processed = processed.to(self.device)
+        input_processed = processed.unsqueeze(0)
+        output, _ = self.model(input_processed)
+        self.insert_memory(observation)
+        action = self._decode_model_output(output)
+        return action, processed.cpu().detach(), output.cpu().detach()
+
+    def random_action(self):
+        return self.valid_action[random.randint(0, len(self.valid_action) - 1)]
+
+    def insert_memory(self, observation):
+        observation = self._preprocess(observation, mode = 'init')
+        self.memory = observation.to(self.device)
+        return None
+
+    def _decode_model_output(self, output, mode = 'sample'):
+        if mode == 'argmax':
+            _, action = torch.max(output, 1)
+            action_index = action.cpu().detach().numpy()[0]
+            action = self.valid_action[action_index]
+            return action
+        elif mode == 'sample':
+            try:
+                output = output.detach().squeeze().cpu()
+                m = Categorical(output)
+                action_index = m.sample().numpy()
+                action = self.valid_action[action_index]
+                return action
+            except RuntimeError:
+                #one numbers in  probability distribution is zero
+                _, action = torch.max(output, 0)
+                action_index = action.cpu().detach().numpy()[0]
+                action = self.valid_action[action_index]
+                return action
+
+    def _preprocess(self, observation, mode = 'normal'):
+        if mode == 'normal':
+            return self.transform(observation, self.memory)
+        elif mode == 'init':
+            return self.transform.insert_init_memory(observation)
+
+    def _check_memory(self):
+        if len(self.memory) > self.max_memory_size:
+            self.memory = self.memory[-self.max_memory_size: ]
+        return None
+
+    def _init_action(self, select):
+        if isinstance(select, list, (list, tuple)):
+            return select
+        elif select is None:
+            return (2, 3, 4)
+        else:
+            raise TypeError('Argument: valid_action must be a list or typle.')
+
+    def _init_model(self, model_type, model_config):
+        if not isinstance(model_config, dict):
+            raise TypeError('Type of argument: model_config must be a dict object.')
+
+        if model_type.lower() == 'ann':
+            model = ANN(**model_config)
+        elif model_type.lower() == 'snn':
+            model = SNN(**model_config)
+        else:
+            raise ValueError(model_type, ' not a valid selection for choosing agent model.')
+
+        return model
 
 

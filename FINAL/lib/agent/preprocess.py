@@ -8,7 +8,7 @@ from PIL import Image
 __all__ = ['Transform']
 
 
-#transform dictionary format pass in the class
+# transform dictionary format pass in the class
 # {'implenmented string': True}
 class Transform(object):
     def __init__(self, preprocess_dict, device):

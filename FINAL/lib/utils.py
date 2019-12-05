@@ -4,9 +4,14 @@ import json
 import yaml
 import pickle
 
+import torch
+import torch.cuda as cuda
+
 import lib
 
-__all__ = ['save_object', 'load_pickle_obj', 'load_json_obj', 'load_config', 'Recorder']
+
+__all__ = ['save_object', 'load_pickle_obj', 'load_json_obj', 'load_config',
+        'init_torch_device', 'Recorder']
 
 
 def save_object(fname, obj, mode = 'pickle'):
@@ -54,6 +59,33 @@ def load_config(fname):
     content = yaml.load(f, Loader = yaml.FullLoader)
     f.close()
     return content
+
+def init_torch_device(select = None):
+    # select calculating device
+    if isinstance(select, torch.device):
+        return select
+
+    if select is None:
+       if cuda.is_available():
+           torch.backends.cudnn.benchmark = True
+           cuda.set_device(0)
+           device = torch.device('cuda:' + str(0))
+           print('Hardware setting done, using device: cuda:' + str(0))
+       else:
+           device = torch.device('cpu')
+           print('Hardware setting done, using device: cpu')
+    else:
+        print('Init calculating device ...')
+        if select < 0:
+            device = torch.device('cpu')
+            print('Hardware setting done, using device: cpu')
+        else:
+            torch.backends.cudnn.benchmark = True
+            cuda.set_device(select)
+            device = torch.device('cuda:' + str(select))
+            print('Hardware setting done, using device: cuda:' + str(select))
+
+    return device
 
 
 class Recorder(object):
