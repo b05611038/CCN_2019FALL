@@ -1,7 +1,10 @@
+import math
 import numpy as np
+
 import torch
 import torchvision
 import torchvision.transforms as tfs
+
 from PIL import Image
 
 
@@ -26,7 +29,7 @@ class Transform(object):
         if self.preprocess_dict['slice_scoreboard'] == True:
             observation = self._slice_scoreboard(observation)
 
-        observation = Image.fromarray(observation)
+        observation = Image.fromarray(np.array(observation, dtype = np.uint8))
         observation = self.transform(observation)
 
         if self.preprocess_dict['gray_scale'] == True:

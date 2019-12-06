@@ -1,0 +1,26 @@
+# logger
+name: 'SNN'
+device: -1
+episodes: 30000
+checkpoint: 3000
+
+# environment
+env:
+  env_name: 'Pong-v0'
+
+# agent
+agent:
+  model_type: 'snn'
+  model_config:
+    img_size: !!python/tuple [1, 84, 84]
+    num_layers: 2
+    hidden_size: 256
+    learning_rule: 'NoOp'
+    nu: !!python/tuple [0.0001, 0.01]
+    dt: 0.1
+    wmin: 0.0
+    wmax: 1.0
+  preprocess:
+    slice_scoreboard: True
+    gray_scale: True
+    minus_observation: True  

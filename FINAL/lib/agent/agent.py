@@ -101,7 +101,7 @@ class PongAgent(Agent):
         return self.valid_action[random.randint(0, len(self.valid_action) - 1)]
 
     def insert_memory(self, observation):
-        observation = self._preprocess(observation, mode = 'init')
+        observation = self.preprocess(observation, mode = 'init')
         self.memory = observation.to(self.device)
         return None
 

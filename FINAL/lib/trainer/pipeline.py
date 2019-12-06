@@ -123,9 +123,7 @@ class PongPipeline(BasePipeline):
             self.env.render()
 
         # Choose action based on output neuron spiking.
-        preprocessed = self.agent.preprocess(self.output)
-        preprocessed = preprocessed.to(self.device)
-        self.action = self.action_function(self, output = preprocessed)
+        self.action = self.action_function(self, output = self.output)
 
         # Run a step of the environment.
         obs, reward, done, info = self.env.step(self.action)
@@ -148,11 +146,13 @@ class PongPipeline(BasePipeline):
         obs, reward, done, info = gym_batch
 
         # Place the observations into the inputs.
-        obs_shape = [1] * len(obs.shape[1: ])
-        inputs = {k: obs.repeat(self.time, *obs_shape) for k in self.inputs}
+        preprocessed = self.agent.preprocess(obs)
+        shape = [1] * len(preprocessed[1: ])
+        inputs = {k: preprocessed.repeat(self.time, *shape) for k in self.inputs}
 
         # Run the network on the spike train-encoded inputs.
         self.network.run(inputs = inputs, time = self.time, reward = reward, **kwargs)
+        self.agent.insert_memory(obs)
 
         if self.output is not None:
             self.spike_record[self.output] = (

@@ -1,0 +1,29 @@
+# logger
+name: 'ANN'
+device: -1
+episodes: 30000
+checkpoint: 3000
+
+#optimizer
+optim:
+  name: 'Adam'
+  args:
+    lr: 0.0003
+
+# environment
+env:
+  env_name: 'Pong-v0'
+  reward_normalize: True
+  reward_decay: True
+
+# agent
+agent:
+  model_type: 'snn'
+  model_config:
+    img_size: !!python/tuple [1, 84, 84]
+    num_layers: 2
+    hidden_size: 256
+  preprocess:
+    slice_scoreboard: True
+    gray_scale: True
+    minus_observation: True  

@@ -20,7 +20,7 @@ class SNN(Network):
             img_size: tuple,
             num_actions: int,
             num_layers: int = 2,
-            hidden_size: int = 256,
+            n_neurons: int = 256,
             learning_rule: str = 'NoOp',
             nu: Optional[Union[float, Sequence[float]]] = (1e-4, 1e-2),
             dt: float = 0.1,
@@ -41,9 +41,11 @@ class SNN(Network):
         self.dt = dt
         self.wmin = wmin
         self.wmax = wmax
+        if inpt_shape is None:
+            self.inpt_shape = img_size
 
         # layers of neural
-        inpt = Input(n = np.prod(img_size), shape = img_size, traces = True)
+        inpt = Input(n = np.prod(img_size), shape = self.inpt_shape, traces = True)
         middles = []
         for i in range(1, num_layers):
             middles.append(LIFNodes(n = hidden_size, traces = True))
