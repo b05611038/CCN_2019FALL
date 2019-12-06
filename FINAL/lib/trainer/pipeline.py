@@ -48,7 +48,7 @@ class PongPipeline(BasePipeline):
         self.output = kwargs.get('output', None)
         self.render_interval = kwargs.get('render_interval', None)
         self.reward_delay = kwargs.get('reward_delay', None)
-        self.time = kwargs.get('time', int(network.dt))
+        self.time = kwargs.get('time', int(self.agent.model.dt))
         self.skip_first_frame = kwargs.get('skip_first_frame', True)
 
         if self.reward_delay is not None:
@@ -58,7 +58,7 @@ class PongPipeline(BasePipeline):
         # Set up for multiple layers of input layers.
         self.inputs = [
             name
-            for name, layer in network.layers.items()
+            for name, layer in self.network.layers.items()
             if isinstance(layer, AbstractInput)
         ]
 
@@ -75,7 +75,7 @@ class PongPipeline(BasePipeline):
             )
 
             self.spike_record = {
-                self.output: torch.zeros((self.time, len(self.agent.valid_action)))
+                self.output: torch.zeros((self.time, len(self.agent.action)))
             }
 
     def train(self, num_episodes):
@@ -86,7 +86,7 @@ class PongPipeline(BasePipeline):
 
         return None
 
-    def episode(self, iter_num, train = True, test_seed = None):
+    def episode(self, iter_num, train = True, test_seed = None, **kwargs):
         self.reset_state_variables()
         if not train:
             if test_seed is None:
@@ -102,12 +102,11 @@ class PongPipeline(BasePipeline):
             if done:
                 break
 
-        print(
-            f"Episode: {iter_num} - "
-            f"accumulated reward: {self.accumulated_reward:.2f}"
-        )
-
-        self.agent.model = self.network
+        if train:
+            print(
+                f"Episode: {iter_num} - "
+                f"accumulated reward: {self.accumulated_reward:.2f}"
+            )
 
         return self.accumulated_reward
 
@@ -152,6 +151,7 @@ class PongPipeline(BasePipeline):
 
         # Run the network on the spike train-encoded inputs.
         self.network.run(inputs = inputs, time = self.time, reward = reward, **kwargs)
+        self.agent.model = self.network
         self.agent.insert_memory(obs)
 
         if self.output is not None:

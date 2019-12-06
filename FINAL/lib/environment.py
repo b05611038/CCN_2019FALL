@@ -11,13 +11,18 @@ __all__ = ['GymEnvironment']
 
 class GymEnvironment(Environment):
     def __init__(self, env_name = 'Pong-v0', train = True, **kwargs):
+        self.env_name = env_name
         self.env = gym.make(env_name)
         self.train = train
         if not self.train:
             # fix the testing envirnment
             self.seed(0)
 
-        self.action_space = self.env.action_space
+        if env_name == 'Pong-v0':
+            self.action_space = gym.spaces.discrete.Discrete(n = 3)
+        else:
+            self.action_space = self.env.action_space
+
         self.observation_space = self.env.observation_space
 
         self.clip_rewards = kwargs.get("clip_rewards", False)

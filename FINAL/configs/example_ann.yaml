@@ -13,6 +13,7 @@ optim:
 # environment
 env:
   env_name: 'Pong-v0'
+  test_num: 10
   reward_normalize: True
   reward_decay: True
 

@@ -34,7 +34,7 @@ class SNN(Network):
         self.img_size = img_size
         self.num_actions = num_actions
         self.num_layers = num_layers
-        self.hidden_size = hidden_size
+        self.n_neurons = n_neurons
         self.learning_rule = learning_rule
         rule = self._lr_selection(learning_rule)
         self.nu = nu
@@ -48,7 +48,7 @@ class SNN(Network):
         inpt = Input(n = np.prod(img_size), shape = self.inpt_shape, traces = True)
         middles = []
         for i in range(1, num_layers):
-            middles.append(LIFNodes(n = hidden_size, traces = True))
+            middles.append(LIFNodes(n = n_neurons, traces = True))
 
         out = LIFNodes(n = num_actions, refrac = 0, traces = True)
 
