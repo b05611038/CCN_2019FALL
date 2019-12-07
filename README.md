@@ -1,1 +1,1 @@
-# CCN_2019FALL
+# Computation Cognitive Neuroscience (2019 Fall)
