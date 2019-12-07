@@ -12,7 +12,7 @@ import lib
 from lib.utils import *
 from lib.agent import PongAgent
 from lib.environment import GymEnvironment
-from lib.trainer.pipeline import PongPipeline 
+from lib.trainer.pipeline import PongPipeline
 
 
 __all__ = ['SNNTrainer']
@@ -36,13 +36,13 @@ class SNNTrainer(object):
 
         self.record_title = ['episode', 'train_reward', 'test_reward']
         self.recorder = Recorder(self.record_title)
-        print('SNNTrainer inital done.')
+        print('SNNTrainer initalization done.')
 
     def save(self, path = None, episode_note = None):
         if path is None:
             path = self.save_dir
 
-        self.agent.save(path, note) 
+        self.agent.save(path, episode_note)
         return None
 
     def train(self, config = None):
@@ -51,32 +51,30 @@ class SNNTrainer(object):
 
         episodes = cfg['episodes']
         checkpoint = cfg['checkpoint']
+
         print('Start training ...')
-        for i in range(episodes):
-            start_time = time.time()
-            if i % 100 == 0 and i != 0:
+        start_time = time.time()
+        self._episode(0, test=False)
+        for i in range(1, episodes):
+            if i % 100 == 0:
                 self._episode(i, test = True)
             else:
                 self._episode(i, test = False)
-
-            if i % cfg['checkpoint'] == 0 and i != 0:
+            if i % checkpoint == 0:
                 self.save()
 
-            print('Episode: %d / %d, cause %.4f seconds' % (i + 1, episodes, time.time() - start_time))
+            print(f'Episode: {i + 1} / {episodes}, takes {time.time() - start_time:.4f} seconds')
 
         self.recorder.write(self.save_dir, cfg['name'])
         print("Training complete.\n")
         return None
 
     def _episode(self, iter, test = False):
-        if test:
-            self.pipeline.network.learning = False
-        else:
-            self.pipeline.network.learning = True
+        self.pipeline.network.learning = test
 
         reward = self.pipeline.episode(iter, train = True)
         if test:
-            rounds = self.config['env']['test_num']
+            rounds = self.cfg['env']['test_num']
             test_reward = 0.
             for i in range(rounds):
                 test_reward += self.pipeline.episode(iter, train = False, test_seed = i)
@@ -86,20 +84,18 @@ class SNNTrainer(object):
                 f"\nEpisode: {iter} - "
                 f"testing reward: {test_reward:.2f}\n"
             )
-
-        if test:
-            self.recorder.insert((iter, reward, test_reward))
         else:
-            self.recorder.insert((iter, reward, np.nan))
+            test_reward = np.nan
 
+        self.recorder.insert((iter, reward, test_reward))
         return None
 
     def _init_agent(self, config, env, name):
         if config['model_type'].lower() != 'snn':
-            raise RuntimeError('Please ensure that only snn base agent can be trained in SNNTrainer.')
+            raise RuntimeError('Only "snn" base agent can be trained in SNNTrainer.')
 
         agent = PongAgent(
-                name, 
+                name,
                 config['model_type'],
                 config['model_config'],
                 config['preprocess'],
@@ -110,7 +106,6 @@ class SNNTrainer(object):
 
     def _init_env(self, env_cfg):
         env = GymEnvironment(env_cfg['env_name'])
-        
         return env
 
     def _init_device(self, device):
@@ -126,5 +121,3 @@ class SNNTrainer(object):
         save_dir = model_name
         print('All object (model checkpoint, trainning history, ...) would save in', save_dir)
         return save_dir
-
-
