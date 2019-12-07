@@ -3,5 +3,6 @@ scikit-video
 torch
 torchvision
 bindsnet
+yaml
 gym
 gym[atari]
