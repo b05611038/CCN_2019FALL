@@ -96,10 +96,8 @@ class Recorder(object):
         self.data = []
 
     def from_old_file(self, file_name):
-        f = open(file_name, 'r')
-        lines = f.readlines()
-        f.close()
-
+        with open(file_name, 'r') as f:
+             lines = f.readlines()
         for line in lines:
             elements = line.replace('\n', '').split(',')
             temp_list = []
@@ -124,10 +122,9 @@ class Recorder(object):
 
     def write(self, path, file_name, file_type = '.csv'):
         print('Start writing recording file ...')
-        lines = self._build_file()
-        f = open(os.path.join(path, file_name) + file_type, 'w')
-        f.writelines(lines)
-        f.close()
+        with open(os.path.join(path, file_name) + file_type, 'w') as f:
+            lines = self._build_file()
+            f.writelines(lines)
         print('Recoder writing done.')
         return None
 
@@ -150,5 +147,3 @@ class Recorder(object):
             lines.append(new_lines)
 
         return lines
-
-
