@@ -67,7 +67,7 @@ class PongPipeline(BasePipeline):
         self.voltage_record = None
         self.threshold_value = None
 
-        self.first = True        
+        self.first = True
 
         if self.output is not None:
             self.network.add_monitor(
@@ -79,28 +79,22 @@ class PongPipeline(BasePipeline):
             }
 
     def train(self, num_episodes):
-        episode = 0
-        while episode < num_episodes:
-            self.episode(episode)
-            episode += 1
-
+        for ep in range(num_episodes):
+            self.episode(ep)
         return None
 
     def episode(self, iter_num, train = True, test_seed = None, **kwargs):
         self.reset_state_variables()
         if not train:
             if test_seed is None:
-                self.env.seed(0)
-            else:
-                self.env.seed(test_seed)
+                test_seed = 0
+            self.env.seed(test_seed)
 
-        for _ in itertools.count():
+        done = False
+        while not done:
             obs, reward, done, info = self.env_step()
 
             self.step((obs, reward, done, info), **kwargs)
-
-            if done:
-                break
 
         if train:
             print(
