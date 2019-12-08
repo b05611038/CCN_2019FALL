@@ -47,7 +47,7 @@ class GymEnvironment(Environment):
     def preprocess(self):
         return None
 
-    def step(self, action):
+    def step(self, action, tensor = False):
         '''
         When running pg:
             observation: np.array
@@ -70,6 +70,8 @@ class GymEnvironment(Environment):
             reward = np.sign(reward)
 
         self.history['rewards'].append(reward)
+        if tensor:
+            observation = torch.tensor(observation)
 
         return observation, reward, done, info
 

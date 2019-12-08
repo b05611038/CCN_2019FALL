@@ -84,7 +84,9 @@ class PongPipeline(BasePipeline):
         return None
 
     def episode(self, iter_num, train = True, test_seed = None, **kwargs):
+        print('Start episode: %d ...' % iter_num)
         self.reset_state_variables()
+        frame_iter = 0
         if not train:
             if test_seed is None:
                 test_seed = 0
@@ -96,6 +98,11 @@ class PongPipeline(BasePipeline):
 
             self.step((obs, reward, done, info), **kwargs)
 
+            frame_iter += 1
+
+            if frame_iter % 100 == 0 and frame_iter != 0:
+                print('Game frame: %d.' % frame_iter)
+
         if train:
             print(
                 f"Episode: {iter_num} - "
@@ -105,9 +112,6 @@ class PongPipeline(BasePipeline):
         return self.accumulated_reward
 
     def env_step(self) -> Tuple[torch.Tensor, float, bool, Dict]:
-        '''
-        still need to add self.agent.insert_memory into step
-        '''
         # Render game.
         if (
             self.render_interval is not None
@@ -119,7 +123,7 @@ class PongPipeline(BasePipeline):
         self.action = self.action_function(self, output = self.output)
 
         # Run a step of the environment.
-        obs, reward, done, info = self.env.step(self.action)
+        obs, reward, done, info = self.env.step(self.action, tensor = True)
 
         # Set reward in case of delay.
         if self.reward_delay is not None:
@@ -140,8 +144,10 @@ class PongPipeline(BasePipeline):
 
         # Place the observations into the inputs.
         preprocessed = self.agent.preprocess(obs)
-        shape = [1] * len(preprocessed[1: ])
-        inputs = {k: preprocessed.repeat(self.time, *shape) for k in self.inputs}
+        shape = [1] * len(preprocessed.shape)
+        inputs = {k: preprocessed.repeat(self.time, *shape).unsqueeze(0) for k in self.inputs}
+
+        inputs['Input Layer'] = torch.randn(100, 1, 84, 84)
 
         # Run the network on the spike train-encoded inputs.
         self.network.run(inputs = inputs, time = self.time, reward = reward, **kwargs)
@@ -175,7 +181,7 @@ class PongPipeline(BasePipeline):
     def init_fn(self) -> None:
         pass
 
-    def plots(self) -> None:
+    def plots(self, batch, step_out) -> None:
         pass
 
 

@@ -86,7 +86,7 @@ class PongAgent(Agent):
         self.model = self.model.train()
         return None
 
-    def make_action(self):
+    def make_action(self, observation):
         #return processed model observation and action
         if self.observation_preprocess['minus_observation'] == True:
             if self.memory is None:
@@ -105,6 +105,9 @@ class PongAgent(Agent):
         return self.valid_action[random.randint(0, len(self.valid_action) - 1)]
 
     def insert_memory(self, observation):
+        if isinstance(observation, torch.Tensor):
+            observation = observation.numpy()
+
         observation = self.preprocess(observation, mode = 'init')
         self.memory = observation.to(self.device)
         return None
