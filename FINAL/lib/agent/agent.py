@@ -43,6 +43,7 @@ class PongAgent(Agent):
         self.model_type = model_type
         self.model_config = model_config
         self.preprocess_config = preprocess_config
+        self.policy = None
         self.memory = None
         
     def save(self, directory, note = None):
@@ -53,13 +54,14 @@ class PongAgent(Agent):
                 'model_type': self.model_type,
                 'model_config': self.model_config,
                 'preprocess_config': self.preprocess_config,
+                'policy': self.policy,
                 }
 
         state['model'] = self.model
         if note is None:
             save_object(os.path.join(directory, self.name), state)
         else:
-            save_object(os.path.join(directory, self.name + note), state)
+            save_object(os.path.join(directory, self.name + 'e' + str(note)), state)
 
         return None
 
@@ -86,6 +88,20 @@ class PongAgent(Agent):
         self.model = self.model.train()
         return None
 
+    def set_policy(self, policy):
+        self.policy = policy
+        return None
+
+    def learning(self, state):
+        if not isinstance(state, bool):
+            raise TypeError(state, ' must be a boolean variable.')
+
+        if not self.model_type.lower() == 'snn':
+            raise RuntimeError('Model in agent is not spike neural network, can not set learning state.')
+
+        self.model.learning = state
+        return None
+
     def make_action(self, observation):
         #return processed model observation and action
         if self.observation_preprocess['minus_observation'] == True:
@@ -98,8 +114,12 @@ class PongAgent(Agent):
         input_processed = processed.unsqueeze(0)
         output, _ = self.model(input_processed)
         self.insert_memory(observation)
-        action = self._decode_model_output(output)
-        return action, processed.cpu().detach(), output.cpu().detach()
+
+        if self.policy == 'DDQN':
+            action, action_index = self._decode_model_output(output, mode = 'mix')
+        else:
+            action, action_index = self._decode_model_output(output)
+        return action, action_index, processed.cpu().detach(), output.cpu().detach()
 
     def random_action(self):
         return self.valid_action[random.randint(0, len(self.valid_action) - 1)]
@@ -117,26 +137,43 @@ class PongAgent(Agent):
             return self.transform(observation, self.memory)
         elif mode == 'init':
             return self.transform.insert_init_memory(observation)
+        else:
+            raise ValueError(mode, ' is invaled in PongAgent.preprocess().')
 
-    def _decode_model_output(self, output, mode = 'sample'):
+    def _decode_model_output(self, output, mode = 'sample', rand_p = None):
         if mode == 'argmax':
             _, action = torch.max(output, 1)
             action_index = action.cpu().detach().numpy()[0]
-            action = self.valid_action[action_index]
-            return action
+            action = self.action[action_index]
+            return action, action_index
         elif mode == 'sample':
             try:
                 output = output.detach().squeeze().cpu()
                 m = Categorical(output)
                 action_index = m.sample().numpy()
                 action = self.valid_action[action_index]
-                return action
+                return action, action_index
             except RuntimeError:
                 #one numbers in  probability distribution is zero
                 _, action = torch.max(output, 0)
                 action_index = action.cpu().detach().numpy()[0]
                 action = self.valid_action[action_index]
-                return action
+                return action, action_index
+        elif mode == 'mix':
+            # rand_p is rnadom probability, if 1.0 means all action is random
+            if rand_p is None:
+                raise ValueError('Please set argument p in make_action')
+
+            if random.random() < rand_p:
+                #means random action
+                action_index = random.randint(0, len(self.action) - 1)
+                action = self.action[action_index]
+                return action, action_index
+            else:
+                _, action = torch.max(output, 1)
+                action_index = action.cpu().detach().numpy()[0]
+                action = self.valid_action[action_index]
+                return action, action_index
 
     def _check_memory(self):
         if len(self.memory) > self.max_memory_size:

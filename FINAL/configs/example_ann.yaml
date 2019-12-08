@@ -1,8 +1,17 @@
 # logger
 name: 'ANN'
+policy: 'PPO'
 device: -1
 episodes: 30000
 checkpoint: 3000
+
+# data
+dataset:
+  maximum: 1
+  reward_preprocess:
+    reward_normalize: True
+    reward_decay: True
+
 
 #optimizer
 optim:
@@ -13,13 +22,11 @@ optim:
 # environment
 env:
   env_name: 'Pong-v0'
-  test_num: 10
-  reward_normalize: True
-  reward_decay: True
+  test_num: 5
 
 # agent
 agent:
-  model_type: 'snn'
+  model_type: 'ann'
   model_config:
     img_size: !!python/tuple [1, 84, 84]
     num_layers: 2

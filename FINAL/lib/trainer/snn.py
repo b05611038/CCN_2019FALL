@@ -43,6 +43,9 @@ class SNNTrainer(object):
             path = self.save_dir
 
         self.agent.save(path, episode_note)
+        if episode_note is None:
+            save_object(os.path.join(path, 'config.pkl'), self.cfg)
+
         return None
 
     def train(self, config = None):
@@ -53,30 +56,33 @@ class SNNTrainer(object):
         checkpoint = cfg['checkpoint']
 
         print('Start training ...')
-        start_time = time.time()
-        self._episode(0, test=False)
-        for i in range(1, episodes):
-            if i % 100 == 0:
-                self._episode(i, test = True)
+        for i in range(episodes):
+            start_time = time.time()
+
+            if i % 100 == 0 and i != 0:
+                self._episode(i + 1, test = True)
             else:
-                self._episode(i, test = False)
-            if i % checkpoint == 0:
-                self.save()
+                self._episode(i + 1, test = False)
+
+            if i % checkpoint == 0 and i != 0:
+                self.save(episode_note = (i + 1))
 
             print(f'Episode: {i + 1} / {episodes}, takes {time.time() - start_time:.4f} seconds')
 
+        self.save()
         self.recorder.write(self.save_dir, cfg['name'])
         print("Training complete.\n")
         return None
 
     def _episode(self, iter, test = False):
         self.pipeline.network.learning = test
-
         reward = self.pipeline.episode(iter, train = True)
+
         if test:
             rounds = self.cfg['env']['test_num']
             test_reward = 0.
             for i in range(rounds):
+                print('Start testing ...')
                 test_reward += self.pipeline.episode(iter, train = False, test_seed = i)
 
             test_reward /= rounds

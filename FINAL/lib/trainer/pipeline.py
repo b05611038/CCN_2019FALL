@@ -84,24 +84,25 @@ class PongPipeline(BasePipeline):
         return None
 
     def episode(self, iter_num, train = True, test_seed = None, **kwargs):
-        print('Start episode: %d ...' % iter_num)
+        if train:
+            print('Start episode: %d ...' % iter_num)
+
         self.reset_state_variables()
-        frame_iter = 0
         if not train:
             if test_seed is None:
                 test_seed = 0
             self.env.seed(test_seed)
 
-        done = False
-        while not done:
+        for frame_iter in itertools.count():
             obs, reward, done, info = self.env_step()
 
             self.step((obs, reward, done, info), **kwargs)
 
-            frame_iter += 1
-
             if frame_iter % 100 == 0 and frame_iter != 0:
                 print('Game frame: %d.' % frame_iter)
+
+            if done:
+                break
 
         if train:
             print(

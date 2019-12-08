@@ -20,7 +20,11 @@ Temporarily no
 
 ### SNN
 
-Temporarily no
+Train the agnet by config
+
+```
+python3 agent_play_snn.py ./configs/example_snn.yaml
+```
 
 ## Evaluation
 
