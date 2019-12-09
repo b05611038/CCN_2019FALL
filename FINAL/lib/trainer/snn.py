@@ -59,10 +59,10 @@ class SNNTrainer(object):
         for i in range(episodes):
             start_time = time.time()
 
+            self._episode(i + 1, test = False)
+
             if i % 100 == 0 and i != 0:
                 self._episode(i + 1, test = True)
-            else:
-                self._episode(i + 1, test = False)
 
             if i % checkpoint == 0 and i != 0:
                 self.save(episode_note = (i + 1))
@@ -75,15 +75,18 @@ class SNNTrainer(object):
         return None
 
     def _episode(self, iter, test = False):
-        self.pipeline.network.learning = test
+        self.pipeline.network.learning = True
         reward = self.pipeline.episode(iter, train = True)
 
         if test:
+            self.pipeline.network.learning = False
+            network_temp = self.pipeline.network.clone()
             rounds = self.cfg['env']['test_num']
             test_reward = 0.
+            print('Start testing ...')
             for i in range(rounds):
-                print('Start testing ...')
                 test_reward += self.pipeline.episode(iter, train = False, test_seed = i)
+                print('Progress: %d / %d' % (i + 1, rounds))
 
             test_reward /= rounds
             print(

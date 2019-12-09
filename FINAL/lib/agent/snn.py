@@ -8,7 +8,7 @@ import torch.nn as nn
 import bindsnet
 from bindsnet.network import Network
 from bindsnet.network.topology import Connection
-from bindsnet.network.nodes import Input, LIFNodes
+from bindsnet.network.nodes import Input, LIFNodes, SRM0Nodes
 from bindsnet.learning import NoOp, MSTDP, MSTDPET, Rmax
 
 
@@ -36,7 +36,11 @@ class SNN(Network):
         self.num_layers = num_layers
         self.n_neurons = n_neurons
         self.learning_rule = learning_rule
+
         rule = self._lr_selection(learning_rule)
+        self.traces_additive = True if self.learning_rule == 'Rmax' else False
+        self.node_func = self._node(learning_rule)
+
         self.nu = nu
         self.dt = dt
         self.wmin = wmin
@@ -45,18 +49,22 @@ class SNN(Network):
             self.inpt_shape = img_size
 
         # layers of neural
-        inpt = Input(n = np.prod(img_size), shape = self.inpt_shape, traces = True)
+        inpt = Input(n = np.prod(img_size), shape = self.inpt_shape, traces = True,
+                traces_additive = self.traces_additive)
+
         middles = []
         for i in range(1, num_layers):
-            middles.append(LIFNodes(n = n_neurons, traces = True))
+            middles.append(self.node_func(n = n_neurons, traces = True,
+                    traces_additive = self.traces_additive))
 
-        out = LIFNodes(n = num_actions, refrac = 0, traces = True)
+        out = self.node_func(n = num_actions, refrac = 0, traces = True,
+                traces_additive = self.traces_additive)
 
         # connections of layers
         connections = []
         if len(middles) > 0:
              connections.append(Connection(source = inpt, target = middles[0],
-                     nu = nu, wmin = wmin, wmax = wmax, update_rule = rule))
+                     nu = nu, wmin = wmin, wmax = wmax))
              for i in range(len(middles) - 1):
                  connections.append(Connection(source = middles[i], target = middles[i + 1],
                          nu = nu, wmin = wmin, wmax = wmax, update_rule = rule))
@@ -79,6 +87,12 @@ class SNN(Network):
         names.append('Output Layer')
         for i in range(len(connections)):
             self.add_connection(connections[i], source = names[i], target = names[i + 1])
+
+    def _node(self, learning_rule):
+        if learning_rule == 'Rmax':
+            return SRM0Nodes
+        else:
+            return LIFNodes
 
     def _lr_selection(self, rule):
         if rule not in ['NoOp', 'MSTDP', 'MSTDPET', 'Rmax', 'help']:

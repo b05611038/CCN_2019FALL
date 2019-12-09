@@ -91,6 +91,7 @@ class PongPipeline(BasePipeline):
         if not train:
             if test_seed is None:
                 test_seed = 0
+
             self.env.seed(test_seed)
 
         for frame_iter in itertools.count():
@@ -146,9 +147,7 @@ class PongPipeline(BasePipeline):
         # Place the observations into the inputs.
         preprocessed = self.agent.preprocess(obs)
         shape = [1] * len(preprocessed.shape)
-        inputs = {k: preprocessed.repeat(self.time, *shape).unsqueeze(0) for k in self.inputs}
-
-        inputs['Input Layer'] = torch.randn(100, 1, 84, 84)
+        inputs = {k: preprocessed.repeat(self.time, *shape).unsqueeze(1) for k in self.inputs}
 
         # Run the network on the spike train-encoded inputs.
         self.network.run(inputs = inputs, time = self.time, reward = reward, **kwargs)
