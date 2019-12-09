@@ -17,14 +17,21 @@ from lib.agent.snn import SNN
 __all__ = ['PongAgent', 'load_agent']
 
 
-def load_agent(path):
-    state = load_pickle_obj(path)
-    if state['type'] != 'PongAgent':
-        raise TypeError(path, ' is not a file of Agent object')
+def load_agent(agent_cfg, model_file, note = None):
+    if note is None:
+        state = load_pickle_obj(agent_cfg)
+        if state['type'] != 'PongAgent':
+            raise TypeError(path, ' is not a file of Agent object')
 
-    agent = PongAgent(state['args'])
-    agent.model = state['model']
-    agent.model = agent.model.to(agent.device)
+        agent = PongAgent(state['args'])
+        if agent.model_type.lower() == 'snn':
+            agent.model = bindsnet.network.network.load(model_file)
+        elif agent.model_type.lower() == 'ann':
+            agent.model = agent.model.cpu()
+            agent.model.load_state_dict(torch.load(model_file))
+
+        agent.model = agent.model.to(agent.device)
+
     return agnet
 
 
@@ -57,12 +64,20 @@ class PongAgent(Agent):
                 'policy': self.policy,
                 }
 
-        state['model'] = self.model
+        save_object(os.path.join(directory, 'agent'), state)
+        self.model = self.model.cpu()
         if note is None:
-            save_object(os.path.join(directory, self.name), state)
+            if self.model_type.lower() == 'snn':
+                self.model.save(os.path.join(directory, self.name + '.pt'))
+            elif self.model_type.lower() == 'ann':
+                torch.save(self.model.state_dict(), os.path.join(directory, self.name + '.pt'))
         else:
-            save_object(os.path.join(directory, self.name + 'e' + str(note)), state)
+            if self.model_type.lower() == 'snn':
+                self.model.save(os.path.join(directory, self.name + 'e' + str(note) + '.pt'))
+            elif self.model_type.lower() == 'ann':
+                torch.save(self.model.state_dict(), os.path.join(directory, self.name + 'e' + str(note) + '.pt'))
 
+        self.model.to(self.device)
         return None
 
     def load(self, path):
