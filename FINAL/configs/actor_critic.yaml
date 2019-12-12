@@ -1,13 +1,13 @@
 # logger
-name: 'ANN'
-policy: 'PPO'
+name: 'Actor_Critic'
+policy: 'A2C'
 device: -1
 episodes: 30000
 checkpoint: 3000
 
 # data
 dataset:
-  maximum: 1
+  maximum_episode_num: 4
   batch_size: 128
   reward_preprocess:
     reward_normalize: True

@@ -10,7 +10,7 @@ import bindsnet
 
 import lib
 from lib.utils import *
-from lib.agent import PongAgent
+from lib.agent import load_agent, PongAgent
 from lib.environment import GymEnvironment
 from lib.trainer.pipeline import PongPipeline
 
@@ -105,7 +105,7 @@ class SNNTrainer(object):
 
         if os.path.isfile(os.path.join(self.save_dir, 'agent.pkl')):
             agent = load_agent(os.path.join(self.save_dir, 'agent.pkl'),
-                    os.path.join(self.save_dir, self.model_name + '.pt'))
+                    os.path.join(self.save_dir, self.name + '.pt'))
         else:
             agent = PongAgent(
                     name,

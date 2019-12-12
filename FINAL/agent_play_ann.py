@@ -4,7 +4,7 @@ import argparse
 
 import lib
 from lib.utils import *
-from lib.trainer import ANNTrainer
+from lib.trainer import select_trainer
 
 def init_parser():
     parser = argparse.ArgumentParser()
@@ -16,6 +16,6 @@ def init_parser():
 
 if __name__ == '__main__':
     opt = init_parser()
-    trainer = ANNTrainer(opt.config)
+    trainer = select_trainer(opt.config)
     trainer.play()
 

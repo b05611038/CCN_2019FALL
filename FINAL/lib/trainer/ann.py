@@ -34,12 +34,12 @@ def select_trainer(config):
 class ANNBaseTrainer(object):
     def __init__(self, config):
         self.cfg = load_config(config)
-        self.model_name = self.cfg['model_name']
+        self.model_name = self.cfg['name']
         self.save_dir = self._init_directory(self.model_name)
         self.device = self._init_device(self.cfg['device'])
         self.policy = self.cfg['policy']
         self.env = self._init_env(self.cfg['env'])
-        self.agent, self.state = self._init_agent(self.cfg['agent'], self.env, self.name)
+        self.agent, self.state = self._init_agent(self.cfg['agent'], self.env, self.model_name)
         self.agent.set_policy(self.policy)
         self.model = self.agent.model
         self._init_loss_layer(self.policy)
@@ -92,7 +92,8 @@ class ANNBaseTrainer(object):
                     config['model_type'],
                     config['model_config'],
                     config['preprocess'],
-                    self.device
+                    self.policy,
+                    self.device,
                     )
 
             state = 0
@@ -130,28 +131,30 @@ class ANNBaseTrainer(object):
 
 class QTrainer(ANNBaseTrainer):
     def __init__(self, config):
-        super(QTrainer, self).__init__(config):
-        if self.continue_training:
+        super(QTrainer, self).__init__(config)
+        if self.state <= 0:
             self.random_probability = 0.025
         else:
             self.random_probability = 1.0
 
         self.target_net = copy.deepcopy(self.model)
         self.gamma = 0.99
-        self.dataset = QReplayBuffer(env = env, maximum = self.cfg['dataset']['maximum'],
-                preprocess_dict = reward_preprocess)
+        self.dataset = QReplayBuffer(env = self.env, maximum = self.cfg['dataset']['buffer_size'],
+                preprocess_dict = self.reward_preprocess)
 
     def play(self, config = None):
         if config is None:
             cfg = self.cfg
 
         max_state = cfg['episodes']
-        episode_size = cfg['dataset']['maximum']
+        episode_size = cfg['dataset']['episode_size']
         batch_size = cfg['dataset']['batch_size']
         save_interval = cfg['checkpoint']
 
-        if self.random_action:
+        if self.state < 10000:
             self.decay = (1.0 - 0.025) / max_state
+        else:
+            self.decay = 0.
 
         state = self.state
         max_state += self.state
@@ -166,11 +169,9 @@ class QTrainer(ANNBaseTrainer):
 
                 if state % record_round == record_round - 1:
                     _, test_reward = self._collect_data(self.agent, 10, mode = 'test')
-                    fix_reward = self._fix_game(self.agent)
                     self.recorder.insert([state, loss, reward_mean, test_reward])
                     print('\nTraing state:', state + 1, '| Loss:', loss, '| Mean reward:', reward_mean,
-                            '| Test game reward:', test_reward, '| Fix game reward:', fix_reward,
-                            '| Spend Times: %.4f seconds' % (time.time() - start_time), '\n')
+                            '| Test game reward:', test_reward, '| Spend Times: %.4f seconds' % (time.time() - start_time), '\n')
                 else:
                     self.recorder.insert([state, loss, reward_mean, 'NaN'])
                     print('Traing state:', state + 1, '| Loss:', loss, '| Mean reward:', reward_mean,
@@ -180,7 +181,7 @@ class QTrainer(ANNBaseTrainer):
             else:
                 continue
 
-            if self.random_action:
+            if self.state < 10000:
                 self._adjust_probability()
 
             if state % save_interval == 0 and state != 0:
@@ -197,7 +198,6 @@ class QTrainer(ANNBaseTrainer):
         final_reward = []
         for i in range(rounds):
             done = False
-            true_done = False
             skip_first = True
             _ = self.env.reset()
 
@@ -206,7 +206,7 @@ class QTrainer(ANNBaseTrainer):
             last_observation = None
             last_action = None
             last_reward = None
-            while not true_done:
+            while not done:
                 if skip_first:
                     observation, _r, _d, _ = self.env.step(agent.init_action())
                     agent.insert_memory(observation)
@@ -229,7 +229,7 @@ class QTrainer(ANNBaseTrainer):
                         self.dataset.insert_reward(reward, mini_counter)
                         mini_counter = 0
 
-                    if done or true_done:
+                    if done:
                         self.dataset.insert_reward(-1.0, mini_counter)
                         mini_counter = 0
                         skip_first = True
@@ -266,7 +266,7 @@ class QTrainer(ANNBaseTrainer):
             reward = reward.to(self.device)
             
             self.optim.zero_grad()
-            
+
             loss = self._calculate_loss(observation, observation_next, action, reward, self.model, self.target_net)
             loss.backward()
 
@@ -279,7 +279,7 @@ class QTrainer(ANNBaseTrainer):
 
             print('Mini batch progress:', iter + 1, '| Loss:', loss.detach().cpu().numpy())
 
-        self.target_net = copy.deepcopy(self.policy_net)
+        self.target_net = copy.deepcopy(self.model)
         self.target_net = self.target_net.eval()
 
         final_loss = torch.mean(torch.tensor(final_loss)).detach().numpy()
@@ -294,7 +294,7 @@ class QTrainer(ANNBaseTrainer):
         return torch.index_select(torch.eye(length), dim = 0, index = index.cpu())
 
     def _calculate_loss(self, observation, next_observation, action, reward, policy_net, target_net):
-        mask = self._one_hot(len(self.valid_action), action)
+        mask = self._one_hot(len(self.agent.action), action)
         mask = mask.byte().to(self.device)
 
         last_output = policy_net(observation)
@@ -312,18 +312,18 @@ class QTrainer(ANNBaseTrainer):
 
 class PGTrainer(ANNBaseTrainer):
     def __init__(self, config):
-        super(PGTrainer, self).__init__(config):
+        super(PGTrainer, self).__init__(config)
 
         self.eps = 10e-7
-        self.dataset = PGReplayBuffer(env = env, maximum = self.cfg['dataset']['maximum'],
-                    preprocess_dict = reward_preprocess)
+        self.dataset = PGReplayBuffer(env = self.env, maximum = self.cfg['dataset']['maximum_episode_num'],
+                    preprocess_dict = self.reward_preprocess)
 
-    def play(self, config):
+    def play(self, config = None):
         if config is None:
             cfg = self.cfg
 
         max_state = cfg['episodes']
-        episode_size = cfg['dataset']['maximum']
+        episode_size = cfg['dataset']['maximum_episode_num']
         batch_size = cfg['dataset']['batch_size']
         save_interval = cfg['checkpoint']
 
@@ -340,13 +340,11 @@ class PGTrainer(ANNBaseTrainer):
 
                 if state % record_round == record_round - 1:
                     _, test_reward = self._collect_data(self.agent, 10, mode = 'test')
-                    fix_reward = self._fix_game(self.agent)
-                    self.recorder.insert([state, loss, reward_mean, test_reward, fix_reward])
+                    self.recorder.insert([state, loss, reward_mean, test_reward])
                     print('\nTraing state:', state + 1, '| Loss:', loss, '| Mean reward:', reward_mean,
-                            '| Test game reward:', test_reward, '| Fix game reward:', fix_reward,
-                            '| Spend Times: %.4f seconds' % (time.time() - start_time), '\n')
+                            '| Test game reward:', test_reward, '| Spend Times: %.4f seconds' % (time.time() - start_time), '\n')
                 else:
-                    self.recorder.insert([state, loss, reward_mean, 'NaN', 'NaN'])
+                    self.recorder.insert([state, loss, reward_mean, 'NaN'])
                     print('Traing state:', state + 1, '| Loss:', loss, '| Mean reward:', reward_mean,
                             '| Spend Times: %.4f seconds' % (time.time() - start_time), '\n')
 
@@ -417,7 +415,7 @@ class PGTrainer(ANNBaseTrainer):
         self.model = self.model.train().to(self.device)
         final_loss = []
         for iter in range(times):
-            if self.policy == 'A2C':
+            if self.policy == 'PO' or self.policy == 'A2C':
                 self.dataset.make(episode_size)
             else:
                 self.dataset.make(episode_size * 2)
@@ -431,9 +429,9 @@ class PGTrainer(ANNBaseTrainer):
                 
                 self.optim.zero_grad()
                 
-                output, state_value = self.model(observation)
+                output = self.model(observation)
                 
-                loss = self._calculate_loss(output, action, state_value, reward)
+                loss = self._calculate_loss(output, action, reward)
                 loss.backward()
                 
                 self.optim.step()
@@ -450,7 +448,7 @@ class PGTrainer(ANNBaseTrainer):
 
         return final_loss
 
-    def _calculate_loss(self):
+    def _calculate_loss(self, action, record, reward):
         _, target = torch.max(record, 1)
         target = target.detach()
 
@@ -459,19 +457,19 @@ class PGTrainer(ANNBaseTrainer):
             loss = self.loss_layer(action, target)
             loss = torch.mean(loss * reward, dim = 0)
             return loss
-        elif self.polict == 'PPO':
+        elif self.policy == 'PPO':
             important_weight = self._important_weight(record, action, target)
             important_weight = torch.clamp(important_weight, 1.0 - self.clip_value, 1.0 + self.clip_value)
             action = torch.log(action + self.eps)
             loss = self.loss_layer(action, target)
             loss = torch.mean(loss * reward * important_weight, dim = 0)
             return loss
-
         elif self.policy == 'A2C':
+            act, state_value = action
             value_loss = self.critic_loss(state_value, reward)
             advantage = reward - state_value.squeeze().detach()
-            action = torch.log(action + self.eps)
-            loss = self.loss_layer(action, target)
+            act = torch.log(act + self.eps)
+            loss = self.loss_layer(act, target)
             loss = torch.mean(loss * advantage, dim = 0)
             return loss + value_loss
 
@@ -484,7 +482,7 @@ class PGTrainer(ANNBaseTrainer):
 
     def _init_loss_layer(self, policy):
         self.loss_layer = nn.NLLLoss(reduction = 'none')
-        if policy == 'A2C'
+        if policy == 'A2C':
             self.critic_loss = nn.L1Loss()
 
         if policy == 'PPO':

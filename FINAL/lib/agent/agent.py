@@ -6,6 +6,8 @@ import torch
 import torch.cuda as cuda
 from torch.distributions import Categorical
 
+import bindsnet
+
 import lib
 from lib.utils import *
 from lib.agent.base import Agent
@@ -17,12 +19,12 @@ from lib.agent.snn import SNN
 __all__ = ['PongAgent', 'load_agent']
 
 
-def load_agent(agent_cfg, model_file, devcie = None):
+def load_agent(agent_cfg, model_file, device = None):
     state = load_pickle_obj(agent_cfg)
     if state['type'] != 'PongAgent':
         raise TypeError(path, ' is not a file of Agent object')
  
-    agent = PongAgent(state['args'])
+    agent = PongAgent(**state['args'])
     if agent.model_type.lower() == 'snn':
         agent.model = bindsnet.network.network.load(model_file)
     elif agent.model_type.lower() == 'ann':
@@ -38,7 +40,7 @@ def load_agent(agent_cfg, model_file, devcie = None):
 
 
 class PongAgent(Agent):
-    def __init__(self, name, model_type, model_config, preprocess_config, device = None):
+    def __init__(self, name, model_type, model_config, preprocess_config, policy = None, device = None, **kwargs):
         super(PongAgent, self).__init__(name, 'Pong-v0')
 
         self.device = init_torch_device(device)
@@ -46,13 +48,13 @@ class PongAgent(Agent):
         self.valid_action = kwargs.get('valid_action', None)
         self.action = self._init_action(self.valid_action)
 
-        self.model = self._init_model(model_type, model_config)
+        self.model = self._init_model(model_type, model_config, policy)
         self.transform = Transform(preprocess_config, self.device)
 
         self.model_type = model_type
         self.model_config = model_config
         self.preprocess_config = preprocess_config
-        self.policy = None
+        self.policy = policy
         self.memory = None
         self.note = None # episode nums
         
@@ -85,15 +87,9 @@ class PongAgent(Agent):
         self.model.to(self.device)
         return None
 
-    def load(self, path):
-        state = load_pickle_obj(path)
-        if state['type'] != 'PongAgent':
-            raise TypeError(path, ' is not a file of Agent object')
-
-        self.model_type = state['args']['model_type']
-        self.model_config = state['args']['model_config']
-        self.transform = Transform(state['args']['preprocess_config'], self.device)
-        self.model = state['model']
+    def load(self, agent_cfg, model_file):
+        device = self.device
+        self = load_agent(agent_cfg, model_file, device = device)
         return None
 
     def rename(self, new_name):
@@ -124,7 +120,7 @@ class PongAgent(Agent):
 
     def make_action(self, observation, p = None):
         #return processed model observation and action
-        if self.observation_preprocess['minus_observation'] == True:
+        if self.preprocess_config['minus_observation'] == True:
             if self.memory is None:
                 raise RuntimeError('Please insert init memory before playing a game.')
 
@@ -132,18 +128,24 @@ class PongAgent(Agent):
         processed = self.preprocess(observation)
         processed = processed.to(self.device)
         input_processed = processed.unsqueeze(0)
-        output, _ = self.model(input_processed)
+        output = self.model(input_processed)
+        if isinstance(output, tuple):
+            output = output[0]
+
         self.insert_memory(observation)
 
         if self.policy == 'DDQN':
-            action, action_index = self._decode_model_output(output, mode = 'mix')
+            action, action_index = self._decode_model_output(output, mode = 'mix', rand_p = p)
         else:
             action, action_index = self._decode_model_output(output)
 
         return action, action_index, processed.cpu().detach(), output.cpu().detach()
 
+    def init_action(self):
+        return self.random_action()
+
     def random_action(self):
-        return self.valid_action[random.randint(0, len(self.valid_action) - 1)]
+        return self.action[random.randint(0, len(self.action) - 1)]
 
     def insert_memory(self, observation):
         if isinstance(observation, torch.Tensor):
@@ -162,6 +164,9 @@ class PongAgent(Agent):
             raise ValueError(mode, ' is invaled in PongAgent.preprocess().')
 
     def _decode_model_output(self, output, mode = 'sample', rand_p = None):
+        if not isinstance(output, torch.Tensor):
+            output = output[0]
+
         if mode == 'argmax':
             _, action = torch.max(output, 1)
             action_index = action.cpu().detach().numpy()[0]
@@ -172,13 +177,13 @@ class PongAgent(Agent):
                 output = output.detach().squeeze().cpu()
                 m = Categorical(output)
                 action_index = m.sample().numpy()
-                action = self.valid_action[action_index]
+                action = self.action[action_index]
                 return action, action_index
             except RuntimeError:
-                #one numbers in  probability distribution is zero
+                #one numbers in probability distribution is zero
                 _, action = torch.max(output, 0)
-                action_index = action.cpu().detach().numpy()[0]
-                action = self.valid_action[action_index]
+                action_index = action.cpu().detach().numpy()
+                action = self.action[action_index]
                 return action, action_index
         elif mode == 'mix':
             # rand_p is rnadom probability, if 1.0 means all action is random
@@ -193,7 +198,7 @@ class PongAgent(Agent):
             else:
                 _, action = torch.max(output, 1)
                 action_index = action.cpu().detach().numpy()[0]
-                action = self.valid_action[action_index]
+                action = self.action[action_index]
                 return action, action_index
 
     def _check_memory(self):
@@ -209,12 +214,21 @@ class PongAgent(Agent):
         else:
             raise TypeError('Argument: valid_action must be a list or typle.')
 
-    def _init_model(self, model_type, model_config):
+    def _init_model(self, model_type, model_config, policy):
         if not isinstance(model_config, dict):
             raise TypeError('Type of argument: model_config must be a dict object.')
 
         if model_type.lower() == 'ann':
-            model = ANN(num_actions = len(self.action), **model_config)
+            if policy is None:
+                model = ANN(num_actions = len(self.action), **model_config)
+            else:
+                if policy == 'PO' or policy == 'PPO':
+                    model = ANN(num_actions = len(self.action), softmax = True, **model_config)
+                elif policy == 'A2C':
+                    model = ANN(num_actions = len(self.action), critic = True, softmax = True, **model_config)
+                elif policy == 'DDQN':
+                    model = ANN(num_actions = len(self.action), **model_config)
+
         elif model_type.lower() == 'snn':
             model = SNN(num_actions = len(self.action), **model_config)
         else:

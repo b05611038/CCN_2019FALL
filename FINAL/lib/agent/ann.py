@@ -12,7 +12,7 @@ __all__ = ['ANN']
 
 class ANN(nn.Module):
     def __init__(self, img_size, num_actions, num_layers = 2, hidden_size = 256,
-            dropout = 0.1, critic = False):
+            dropout = 0.1, critic = False, softmax = False):
         super(ANN, self).__init__()
 
         self.img_size = img_size
@@ -21,6 +21,7 @@ class ANN(nn.Module):
         self.hidden_size = hidden_size
         self.dropout = dropout
         self.critic = critic
+        self.softmax = softmax
 
         self.model = nn.Sequential()
         self.model.add_module('fc1', nn.Linear(np.prod(img_size), hidden_size))
@@ -35,10 +36,16 @@ class ANN(nn.Module):
         if self.critic:
             self.critic_layer = nn.Linear(hidden_size, 1)
 
+        if self.softmax:
+            self.softmax = nn.Softmax(dim = -1)
+
     def forward(self, x):
         x = x.view(x.size(0), -1)
         x = self.model(x)
         action = self.actor_layer(x)
+        if self.softmax:
+            action = self.softmax(action)
+
         if self.critic:
             score = self.critic_layer(x)
             return action, score

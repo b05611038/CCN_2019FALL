@@ -39,7 +39,7 @@ class QReplayBuffer(Dataset):
         return None
 
     def insert_reward(self, reward, times):
-        if self.preprocess_dict['time_decay']:
+        if self.preprocess_dict['reward_decay']:
             decay_reward = (reward * (np.power(self.gamma, np.flip(np.arange(times))) / \
                     np.sum(np.power(self.gamma, np.flip(np.arange(times)))))).tolist()
             self.rewards[len(self.rewards): ] = decay_reward
@@ -107,7 +107,7 @@ class PGReplayBuffer(Dataset):
     def insert_reward(self, reward, times, done):
         if self.__insert_lock[-1] != True:
             for i in range(times):
-                if self.preprocess_dict['time_decay']:
+                if self.preprocess_dict['reward_decay']:
                     decay_reward = reward * math.pow((self.gamma), (times - 1 - i))
                     self.rewards[-1].append(decay_reward)
                 else:
@@ -149,7 +149,7 @@ class PGReplayBuffer(Dataset):
                 else:
                     self.reward = torch.cat((self.reward, rew), dim = 0)
 
-        if self.preprocess_dict['normalized']:
+        if self.preprocess_dict['reward_normalize']:
             mean = torch.mean(self.reward, dim = 0)
             std = torch.std(self.reward, dim = 0)
             self.reward = (self.reward - mean) / (std + self.eps)

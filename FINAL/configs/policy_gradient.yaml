@@ -1,0 +1,38 @@
+# logger
+name: 'Policy_Gradient'
+policy: 'PO'
+device: -1
+episodes: 30000
+checkpoint: 3000
+
+# data
+dataset:
+  maximum_episode_num: 4
+  batch_size: 128
+  reward_preprocess:
+    reward_normalize: True
+    reward_decay: True
+
+
+#optimizer
+optim:
+  name: 'Adam'
+  args:
+    lr: 0.0003
+
+# environment
+env:
+  env_name: 'Pong-v0'
+  test_num: 5
+
+# agent
+agent:
+  model_type: 'ann'
+  model_config:
+    img_size: !!python/tuple [1, 84, 84]
+    num_layers: 2
+    hidden_size: 256
+  preprocess:
+    slice_scoreboard: True
+    gray_scale: True
+    minus_observation: True  
