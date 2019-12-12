@@ -8,6 +8,7 @@ checkpoint: 3000
 # data
 dataset:
   maximum: 1
+  batch_size: 128
   reward_preprocess:
     reward_normalize: True
     reward_decay: True

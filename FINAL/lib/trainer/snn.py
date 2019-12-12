@@ -65,11 +65,11 @@ class SNNTrainer(object):
                 self._episode(i + 1, test = True)
 
             if i % checkpoint == 0 and i != 0:
-                self.save(episode_note = (i + 1))
+                self.save(episode_note = i)
 
             print(f'Episode: {i + 1} / {episodes}, takes {time.time() - start_time:.4f} seconds')
 
-        self.save()
+        self.save(episode_note = episodes)
         self.recorder.write(self.save_dir, cfg['name'])
         print("Training complete.\n")
         return None
@@ -103,13 +103,17 @@ class SNNTrainer(object):
         if config['model_type'].lower() != 'snn':
             raise RuntimeError('Only "snn" base agent can be trained in SNNTrainer.')
 
-        agent = PongAgent(
-                name,
-                config['model_type'],
-                config['model_config'],
-                config['preprocess'],
-                self.device
-                )
+        if os.path.isfile(os.path.join(self.save_dir, 'agent.pkl')):
+            agent = load_agent(os.path.join(self.save_dir, 'agent.pkl'),
+                    os.path.join(self.save_dir, self.model_name + '.pt'))
+        else:
+            agent = PongAgent(
+                    name,
+                    config['model_type'],
+                    config['model_config'],
+                    config['preprocess'],
+                    self.device
+                    )
 
         return agent
 
@@ -130,3 +134,5 @@ class SNNTrainer(object):
         save_dir = model_name
         print('All object (model checkpoint, trainning history, ...) would save in', save_dir)
         return save_dir
+
+

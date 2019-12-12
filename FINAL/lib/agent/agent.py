@@ -17,26 +17,28 @@ from lib.agent.snn import SNN
 __all__ = ['PongAgent', 'load_agent']
 
 
-def load_agent(agent_cfg, model_file, note = None):
-    if note is None:
-        state = load_pickle_obj(agent_cfg)
-        if state['type'] != 'PongAgent':
-            raise TypeError(path, ' is not a file of Agent object')
+def load_agent(agent_cfg, model_file, devcie = None):
+    state = load_pickle_obj(agent_cfg)
+    if state['type'] != 'PongAgent':
+        raise TypeError(path, ' is not a file of Agent object')
+ 
+    agent = PongAgent(state['args'])
+    if agent.model_type.lower() == 'snn':
+        agent.model = bindsnet.network.network.load(model_file)
+    elif agent.model_type.lower() == 'ann':
+        agent.model = agent.model.cpu()
+        agent.model.load_state_dict(torch.load(model_file))
+ 
+    if device is not None:
+         agent.device = init_torch_device(device)
+        
+    agent.model = agent.model.to(agent.device)    
 
-        agent = PongAgent(state['args'])
-        if agent.model_type.lower() == 'snn':
-            agent.model = bindsnet.network.network.load(model_file)
-        elif agent.model_type.lower() == 'ann':
-            agent.model = agent.model.cpu()
-            agent.model.load_state_dict(torch.load(model_file))
-
-        agent.model = agent.model.to(agent.device)
-
-    return agnet
+    return agent
 
 
 class PongAgent(Agent):
-    def __init__(self, name, model_type, model_config, preprocess_config, device, **kwargs):
+    def __init__(self, name, model_type, model_config, preprocess_config, device = None):
         super(PongAgent, self).__init__(name, 'Pong-v0')
 
         self.device = init_torch_device(device)
@@ -52,16 +54,19 @@ class PongAgent(Agent):
         self.preprocess_config = preprocess_config
         self.policy = None
         self.memory = None
+        self.note = None # episode nums
         
     def save(self, directory, note = None):
         state = {'type': 'PongAgent'}
 
+        self.note = note
         state['args'] = {
                 'name': self.name,
                 'model_type': self.model_type,
                 'model_config': self.model_config,
                 'preprocess_config': self.preprocess_config,
                 'policy': self.policy,
+                'episode': self.note,
                 }
 
         save_object(os.path.join(directory, 'agent'), state)
@@ -117,7 +122,7 @@ class PongAgent(Agent):
         self.model.learning = state
         return None
 
-    def make_action(self, observation):
+    def make_action(self, observation, p = None):
         #return processed model observation and action
         if self.observation_preprocess['minus_observation'] == True:
             if self.memory is None:
@@ -134,6 +139,7 @@ class PongAgent(Agent):
             action, action_index = self._decode_model_output(output, mode = 'mix')
         else:
             action, action_index = self._decode_model_output(output)
+
         return action, action_index, processed.cpu().detach(), output.cpu().detach()
 
     def random_action(self):
