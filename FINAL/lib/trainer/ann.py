@@ -358,9 +358,9 @@ class PGTrainer(ANNBaseTrainer):
                 continue
 
             if state % save_interval == 0 and state != 0:
-                self._save_checkpoint(state)
+                self.save(episode_note = state)
 
-        self._save_checkpoint(state)
+        self.save(episode_note = state)
         self.recorder.write(self.save_dir, 'his_' + self.model_name + '_s' + str(self.state) + '_s' + str(max_state))
         print('Training Agent:', self.model_name, 'finish.')
         return None
