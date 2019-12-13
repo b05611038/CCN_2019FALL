@@ -7,6 +7,9 @@ import torch.cuda as cuda
 from torch.distributions import Categorical
 
 import bindsnet
+from bindsnet.network.nodes import AbstractInput
+from bindsnet.network.monitors import Monitor
+from bindsnet.pipeline.action import select_softmax
 
 import lib
 from lib.utils import *
@@ -52,11 +55,22 @@ class PongAgent(Agent):
         self.transform = Transform(preprocess_config, self.device)
 
         self.model_type = model_type
+        self.sim_time = kwargs.get('sim_time', None)
+        self.output = kwargs.get('output', None)
         self.model_config = model_config
         self.preprocess_config = preprocess_config
         self.policy = policy
         self.memory = None
         self.note = None # episode nums
+
+        if self.model_type.lower() == 'snn' and self.output is not None:
+            self.model.add_monitor(
+                Monitor(self.model.layers[self.output], ["s"]), self.output
+            )
+
+            self.spike_record = {
+                self.output: torch.zeros((self.time, len(self.agent.action)))
+            }
         
     def save(self, directory, note = None):
         state = {'type': 'PongAgent'}
@@ -92,6 +106,16 @@ class PongAgent(Agent):
         self = load_agent(agent_cfg, model_file, device = device)
         return None
 
+    def load_model(self, path):
+        if self.model_type.lower() == 'snn':
+            self.model = bindsnet.network.network.load(path)
+        elif self.model_type.lower() == 'ann':
+            self.model = self.model.cpu()
+            self.model.load_state_dict(torch.load(path))
+            self.model = self.model.to(self.device)
+
+        return None
+
     def rename(self, new_name):
         self.name = new_name
         return None
@@ -124,22 +148,25 @@ class PongAgent(Agent):
             if self.memory is None:
                 raise RuntimeError('Please insert init memory before playing a game.')
 
-        self.model = self.model.eval()
-        processed = self.preprocess(observation)
-        processed = processed.to(self.device)
-        input_processed = processed.unsqueeze(0)
-        output = self.model(input_processed)
-        if isinstance(output, tuple):
-            output = output[0]
+        if self.model_type.lower() == 'ann':
+            self.model = self.model.eval()
+            processed = self.preprocess(observation)
+            processed = processed.to(self.device)
+            input_processed = processed.unsqueeze(0)
+            output = self.model(input_processed)
+            if isinstance(output, tuple):
+                output = output[0]
 
-        self.insert_memory(observation)
+            self.insert_memory(observation)
 
-        if self.policy == 'DDQN':
-            action, action_index = self._decode_model_output(output, mode = 'mix', rand_p = p)
-        else:
-            action, action_index = self._decode_model_output(output)
+            if self.policy == 'DDQN':
+                action, action_index = self._decode_model_output(output, mode = 'mix', rand_p = p)
+            else:
+                action, action_index = self._decode_model_output(output)
 
-        return action, action_index, processed.cpu().detach(), output.cpu().detach()
+            return action, action_index, processed.cpu().detach(), output.cpu().detach()
+        elif self.model_type.lower() == 'snn':
+            pass
 
     def init_action(self):
         return self.random_action()

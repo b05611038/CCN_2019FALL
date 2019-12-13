@@ -13,13 +13,32 @@ __all__ = ['TrainingPlot', 'VideoMaker']
 
 
 class TrainingPlot(object):
-    def __init__(self, file_name, save, fig_size):
+    def __init__(self, names, file_name = None, save = True, fig_size = (10, 4)):
+        self.names = names
         self.file_name = file_name
         self.save = save
         self.fig_size = fig_size
 
-    def plot(self):
-        raise NotImplementedError()
+        self.file_names = self._get_filenames(self.names, file_name)
+        self.history, self.epochs = self._read_history(self.file_names)
+
+    def plot(self, select = 'all'):
+        if select == 'episode-train_reward':
+            self._plot(self.history, 'episode', 'train_reward',
+                    self.names, 'episode-train_reward', 'episode-train_reward',
+                    ('episode', 'train_reward'), save = self.save)
+        elif select == 'episode-test_reward':
+            self._plot(self.history, 'episode', 'test_reward',
+                    self.names, 'episode-test_reward', 'episode-test_reward',
+                    ('episode', 'test_reward'), save = self.save)
+        elif select == 'all':
+            self.plot(select = 'episode-train_reward')
+            self.plot(select = 'episode-test_reward')
+        else:
+            print(select, 'is not in plotting selections.')
+            print('Only [episode-train_reward, episode-test_reward, all] is avaliable.')
+
+        return None
 
     def _plot(self, x, his, key, legend, save_name, title, axis_name, save = True):
         plt.figure(figsize = self.fig_size)
