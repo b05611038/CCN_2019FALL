@@ -1,14 +1,14 @@
 # logger
 name: 'DDQN'
 policy: 'DDQN'
-device: -1
-episodes: 30000
+device: 1
+episodes: 60000
 checkpoint: 3000
 
 # data
 dataset:
   # maximum_data_num only used in DDQN training
-  buffer_size: 2000  
+  buffer_size: 10000  
   episode_size: 1
   batch_size: 128
   reward_preprocess:

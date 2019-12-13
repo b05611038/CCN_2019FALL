@@ -1,7 +1,7 @@
 # logger
 name: 'Actor_Critic'
 policy: 'A2C'
-device: -1
+device: 0
 episodes: 60000
 checkpoint: 3000
 

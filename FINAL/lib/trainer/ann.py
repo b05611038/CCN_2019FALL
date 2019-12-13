@@ -327,6 +327,11 @@ class PGTrainer(ANNBaseTrainer):
         batch_size = cfg['dataset']['batch_size']
         save_interval = cfg['checkpoint']
 
+        if self.policy == 'PO' or self.policy == 'A2C':
+            self.dataset.reset_maximum(episode_size)
+        else:
+            self.dataset.reset_maximum(episode_size * 4)
+
         state = self.state
         max_state += self.state
         record_round = (max_state - state) // 100

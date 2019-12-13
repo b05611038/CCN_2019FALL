@@ -1,4 +1,4 @@
-# Comparision of SNN and ANN in Reinforcement Learning (Pong v1)
+# Comparision of SNN and ANN in Reinforcement Learning (Pong-v0)
 
 Final project of computational cognitive neuroscience
 
@@ -12,11 +12,15 @@ pip3 install -r requirements.txt
 
 ## Training
 
-To train the agent playing Pong v1 (OpenAI Gym).
+To train the agent playing Pong-v0 (OpenAI Gym).
 
 ### ANN
 
-Temporarily no
+Train the agnet by config
+
+```
+python3 agent_play_ann.py ./configs/policy_gradient.yaml
+```
 
 ### SNN
 
