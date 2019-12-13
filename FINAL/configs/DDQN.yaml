@@ -8,8 +8,8 @@ checkpoint: 3000
 # data
 dataset:
   # maximum_data_num only used in DDQN training
-  buffer_size: 10000  
-  episode_size: 2
+  buffer_size: 2000  
+  episode_size: 1
   batch_size: 128
   reward_preprocess:
     reward_normalize: True

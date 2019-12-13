@@ -234,6 +234,6 @@ class PongAgent(Agent):
         else:
             raise ValueError(model_type, ' not a valid selection for choosing agent model.')
 
-        return model
+        return model.to(self.device)
 
 

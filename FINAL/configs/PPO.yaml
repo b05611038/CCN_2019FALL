@@ -7,7 +7,7 @@ checkpoint: 3000
 
 # data
 dataset:
-  maximum_episode_num: 4
+  maximum_episode_num: 1
   batch_size: 128
   reward_preprocess:
     reward_normalize: True

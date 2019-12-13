@@ -2,12 +2,12 @@
 name: 'Actor_Critic'
 policy: 'A2C'
 device: -1
-episodes: 30000
+episodes: 60000
 checkpoint: 3000
 
 # data
 dataset:
-  maximum_episode_num: 4
+  maximum_episode_num: 1
   batch_size: 128
   reward_preprocess:
     reward_normalize: True
