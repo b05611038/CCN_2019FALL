@@ -10,17 +10,16 @@ from lib.utils import *
 
 __all__ = ['QReplayBuffer', 'PGReplayBuffer', 'EpisodeSet']
 
-
 class QReplayBuffer(Dataset):
     # for DQN base trainer
-    def __init__(self, env, maximum, preprocess_dict, gamma = 0.99):
+    def __init__(self, env, maximum, preprocess_dict, gamma=0.99, eps=10e-7):
         #only note the game environment
         #not the enviroment object
         self.env = env
         self.maximum = maximum
         self.preprocess_dict = preprocess_dict
         self.gamma = gamma
-        self.eps = 10e-7
+        self.eps = eps
 
         self.data = []
         self.rewards = []
@@ -51,7 +50,7 @@ class QReplayBuffer(Dataset):
 
     def trainable(self):
         #check the buffer is ready for training
-        return True if len(self.rewards) > (self.maximum // 4) else False
+        return len(self.rewards) > (self.maximum // 4)
 
     def __getitem__(self, index):
         select = random.randint(0, len(self.data) - 1)
@@ -64,7 +63,7 @@ class QReplayBuffer(Dataset):
 
 class PGReplayBuffer(Dataset):
     # for policy gradient, actor-critic base trainer
-    def __init__(self, env, maximum, preprocess_dict, gamma = 0.99):
+    def __init__(self, env, maximum, preprocess_dict, gamma=0.99, eps=10e-7):
         #only note the game environment
         #not the enviroment object
         self.env = env
@@ -72,7 +71,7 @@ class PGReplayBuffer(Dataset):
         self.preprocess_dict = preprocess_dict
         self.length = 0
         self.gamma = gamma
-        self.eps = 10e-7
+        self.eps = eps
 
         #one elemnet in datalist is a training pair with three elements: observation, reward, action
         #the pair relationship -> model(observation) ==> action ==> reward
@@ -96,7 +95,7 @@ class PGReplayBuffer(Dataset):
         return None
 
     def insert(self, observation, action):
-        if self.__insert_lock[-1] != True:
+        if not self.__insert_lock[-1]:
             #not lock can append
             self.data[-1].append([observation.squeeze(), action])
         else:
@@ -105,10 +104,10 @@ class PGReplayBuffer(Dataset):
         return None
 
     def insert_reward(self, reward, times, done):
-        if self.__insert_lock[-1] != True:
+        if not self.__insert_lock[-1]:
             for i in range(times):
                 if self.preprocess_dict['reward_decay']:
-                    decay_reward = reward * math.pow((self.gamma), (times - 1 - i))
+                    decay_reward = reward * (self.gamma**(times - 1 - i))
                     self.rewards[-1].append(decay_reward)
                 else:
                     self.rewards[-1].append(reward)
@@ -123,7 +122,7 @@ class PGReplayBuffer(Dataset):
 
     def trainable(self):
         #check the buffer is ready for training
-        return True if len(self.rewards) >= self.maximum else False
+        return len(self.rewards) >= self.maximum
 
     def make(self, episode_size):
         self.observation = None
@@ -133,7 +132,7 @@ class PGReplayBuffer(Dataset):
             select = random.randint(0, self.maximum - 1)
             dataset = EpisodeSet(self.data[select], self.rewards[select])
             dataloader = DataLoader(dataset, batch_size = len(self.data[select]), shuffle = False)
-            for iter, (obs, act, rew) in enumerate(dataloader):
+            for j, (obs, act, rew) in enumerate(dataloader):
                 if self.observation is None:
                     self.observation = obs.squeeze()
                 else:
@@ -176,5 +175,3 @@ class EpisodeSet(Dataset):
 
     def __len__(self):
         return len(self.data)
-
-
