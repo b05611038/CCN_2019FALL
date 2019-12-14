@@ -38,7 +38,7 @@ class SNN(Network):
         self.learning_rule = learning_rule
 
         rule = self._lr_selection(learning_rule)
-        self.traces_additive = True if self.learning_rule == 'Rmax' else False
+        self.traces_additive = (self.learning_rule == 'Rmax')
         self.node_func = self._node(learning_rule)
 
         self.nu = nu
