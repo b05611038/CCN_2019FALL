@@ -39,7 +39,7 @@ class AgentPlayer(object):
             scores, videos = self._play_game(sample_times)
             index = self._max_score(scores)
             maker.insert_video(np.asarray(videos[index]))
-            maker.make(self.save_path, self.models[iter].split('/')[-1].replace('.pt', ''))
+            maker.make(self.save_dir, self.models[iter].split('/')[-1].replace('.pt', ''))
 
             print('Progress:', iter + 1, '/', len(self.models))
 
@@ -50,12 +50,11 @@ class AgentPlayer(object):
         scores = []
         videos = []
         for i in range(times):
-            done = False
             observation = self.env.reset()
             videos.append([])
             self.agent.insert_memory(observation)
             scores.append(0.0)
-
+            done = False
             while not done:
                 action, _processed, _model_out = self.agent.make_action(observation)
                 observation_next, reward, done, _ = self.env.step(action)
@@ -78,11 +77,9 @@ class AgentPlayer(object):
     def _get_model_checkpoint(self, path):
         if os.path.isdir(path):
             files = os.listdir(path)
-            model_list = []
-            for file in files:
-                if file.endswith('.pt'):
-                    model_list.append(os.path.join(path, file))
-
+            model_list = [os.path.join(path, file)
+                          for file in os.listdir(path)
+                          if file.endswith('.pt')]
             return model_list
 
         else:
@@ -98,5 +95,3 @@ class AgentPlayer(object):
         save_dir = model_name
         print('All object (model checkpoint, trainning history, ...) would save in', save_dir)
         return save_dir
-
-

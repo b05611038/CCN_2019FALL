@@ -40,6 +40,9 @@ class TrainingPlot():
 
         return None
 
+    def plot_all(self):
+        return self.plot(select='all')
+
     def _plot(self, x, his, key, legend, save_name, title, axis_name, save = True):
         plt.figure(figsize = self.fig_size)
         for i in range(len(his)):
