@@ -18,7 +18,7 @@ def save_object(fname, obj, mode = 'pickle'):
     # the function is used to save some data in class or object in .pkl file
     # or json file
     if not isinstance(fname, str):
-        raise TypeError(fname, "is not string object, it can't be the saving name of file.")
+        raise TypeError(fname, "is not string thus cannot be the file name of save.")
 
     if mode == 'pickle':
         if not fname.endswith('.pkl'):
@@ -34,61 +34,74 @@ def save_object(fname, obj, mode = 'pickle'):
         obj = json.dumps(obj)
         with open(fname, 'w') as out_file:
             out_file.write(obj)
+    else:
+        print("WARNING: not either pickle or json mode, ignoring request.")
 
-    out_file.close()
     return None
 
 def load_pickle_obj(fname):
     # the function is used to read the data in .pkl file
-    if not fname.endswith('.pkl'):
-        raise RuntimeError(fname, 'is not a pickle file.')
+    # if not fname.endswith('.pkl'):
+        # raise RuntimeError(fname, 'is not a pickle file.')
 
     with open(fname, 'rb') as in_file:
         return pickle.load(in_file)
 
 def load_json_obj(fname):
-    # the functionis used to read the data in .json file
-    if not fname.endswith('.json'):
-        raise RuntimeError(fname, 'is not a json file.')
+    # the function is used to read the data in .json file
+    # if not fname.endswith('.json'):
+        # raise RuntimeError(fname, 'is not a json file.')
 
     with open(fname, 'r') as in_file:
         return json.loads(in_file.read())
 
+def load_obj(fname):
+    if fname.endswith('.pkl'):
+        return load_pickle_obj(fname)
+    elif fname.endswith('.json'):
+        return load_json_obj(fname)
+    else:
+        raise RuntimeError(fname, 'is not either a json or pickle file.')
+    return None
+
 def load_config(fname):
-    f = open(fname)
-    content = yaml.load(f, Loader = yaml.FullLoader)
-    f.close()
+    with open(fname) as f:
+        content = yaml.load(f, Loader=yaml.FullLoader)
     return content
 
 def init_torch_device(select = None):
-    # select calculating device
+    """
+    Selects PyTorch device. Accepts either a device object, a string ('cpu' or 'gpu'), 
+    or a number (ID of GPU, negative number indicating use cpu)
+    """
     if isinstance(select, torch.device):
         return select
 
     if select is None:
        if cuda.is_available():
-           torch.backends.cudnn.benchmark = True
-           cuda.set_device(0)
-           device = torch.device('cuda:' + str(0))
-           print('Hardware setting done, using device: cuda:' + str(0))
+           deviceNo = 0
        else:
-           device = torch.device('cpu')
-           print('Hardware setting done, using device: cpu')
+           deviceNo = -1
     else:
-        print('Init calculating device ...')
-        if select < 0:
-            device = torch.device('cpu')
-            print('Hardware setting done, using device: cpu')
+        if select.lower() == 'cpu':
+            deviceNo = -1
+        elif select.lower() == 'gpu':
+            deviceNo = 0
         else:
-            torch.backends.cudnn.benchmark = True
-            cuda.set_device(select)
-            device = torch.device('cuda:' + str(select))
-            print('Hardware setting done, using device: cuda:' + str(select))
+            deviceNo = select
 
+    if deviceNo >= 0:
+        torch.backends.cudnn.benchmark = True
+        cuda.set_device(deviceNo)
+        deviceStr = 'cuda:' + str(deviceNo)
+    else:
+        deviceStr = 'cpu'
+    device = torch.device(deviceStr)
+    print('Hardware setting done, using device:', deviceStr)
     return device
 
 
-class Recorder(object):
+class Recorder():
     # Recoder of recording whole history in traninig.
     def __init__(self, record_column):
         self.record_column = record_column
@@ -97,7 +110,7 @@ class Recorder(object):
 
     def from_old_file(self, file_name):
         with open(file_name, 'r') as f:
-             lines = f.readlines()
+            lines = f.readlines()
         for line in lines:
             elements = line.replace('\n', '').split(',')
             temp_list = []

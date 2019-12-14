@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 __all__ = ['TrainingPlot', 'VideoMaker']
 
 
-class TrainingPlot(object):
+class TrainingPlot():
     def __init__(self, names, file_name = None, save = True, fig_size = (10, 4)):
         self.names = names
         self.file_name = file_name
@@ -81,7 +81,7 @@ class TrainingPlot(object):
         return files
 
 
-class VideoMaker(object):
+class VideoMaker():
     def __init__(self, model_name):
         self.model_name = model_name
         self.save_path = self._create_dir(model_name)
