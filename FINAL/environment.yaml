@@ -1,0 +1,28 @@
+name: bindsnet
+channels:
+- pytorch
+- conda-forge
+- defaults
+dependencies:
+- pytorch
+- torchvision
+- cudatoolkit=10.1
+- tensorboardX
+- pandas
+- cython
+- pytest
+- sphinx_rtd_theme
+- opencv
+- scikit-learn
+- scikit-image
+- scikit-video
+- matplotlib
+- tqdm
+- numpy
+- scipy
+- pre-commit
+- pip
+- pip:
+  - gym
+  - gym[atari]
+  - foolbox
