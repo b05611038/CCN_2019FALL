@@ -132,7 +132,9 @@ class Recorder:
         return len(self.record_columns)
 
     def from_old_file(self, file_name):
-        self._data = pd.read_csv(file_name).values.tolist()
+        df = pd.read_csv(file_name)
+        self._columns = df.columns
+        self._data = df.values.tolist()
 
     def insert(self, new_data) -> None:
         if len(new_data) != self.ncols:
@@ -140,5 +142,5 @@ class Recorder:
         self._data.append([str(obj) for obj in new_data])
 
     def write(self, path: str, file_name: str, file_type = '.csv') -> None:
-        pd.DataFrame(self._data, columns=self.record_columns).to_csv(
-            os.path.join(path, file_name) + file_type)
+        path = os.path.join(path, file_name) + file_type
+        pd.DataFrame(self._data, columns=self.record_columns).to_csv(path)
