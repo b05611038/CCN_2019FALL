@@ -4,6 +4,7 @@ import json
 import yaml
 import pickle
 import logging
+import pandas as pd
 
 import torch
 import torch.cuda as cuda
@@ -35,7 +36,7 @@ def save_json(fname: str, obj) -> None:
 
 def save_object(fname: str, obj, mode = 'pickle') -> None:
     if not isinstance(fname, str):
-        raise TypeError('File name should be a string')
+        raise TypeError('Filename should be a string')
     if mode == 'pickle':
         save_pickle(fname, obj)
     elif mode == 'json':
@@ -45,21 +46,21 @@ def save_object(fname: str, obj, mode = 'pickle') -> None:
 
 
 def load_pickle_obj(fname: str):
-    # the function is used to read the data in .pkl file
-    # if not fname.endswith('.pkl'):
-        # raise RuntimeError(fname, 'is not a pickle file.')
+    """The function is used to read the data in .pkl file"""
     if not isinstance(fname, str):
         raise TypeError('File name should be a string')
+    if not fname.endswith('.pkl'):
+        raise RuntimeError(fname, 'is not a pickle file.')
     with open(fname, 'rb') as in_file:
         return pickle.load(in_file)
 
 
 def load_json_obj(fname: str):
-    # the function is used to read the data in .json file
-    # if not fname.endswith('.json'):
-        # raise RuntimeError(fname, 'is not a json file.')
+    """the function is used to read the data in .json file"""
     if not isinstance(fname, str):
         raise TypeError('File name should be a string')
+    if not fname.endswith('.json'):
+        raise RuntimeError(fname, 'is not a json file.')
     with open(fname, 'r') as in_file:
         return json.loads(in_file.read())
 
@@ -82,8 +83,9 @@ def load_config(fname: str):
 def init_torch_device(select = None):
     """
     Selects PyTorch device. Accepts either a device object, a string ('cpu' or 'gpu'),
-    or a number (ID of GPU, negative number indicating use cpu)
+    or a number (ID of GPU, negative number indicating using CPU)
     """
+    # Passthrough if it's already the torch device
     if isinstance(select, torch.device):
         return select
 
@@ -106,56 +108,37 @@ def init_torch_device(select = None):
         deviceStr = f'cuda:{deviceNo}'
     else:
         deviceStr = 'cpu'
+    
     device = torch.device(deviceStr)
     logging.info(f'Hardware setting done, using device: {deviceStr}')
     return device
 
 
-class Recorder():
+class Recorder:
     """
     Recording the whole history in training
     """
 
-    def __init__(self, record_column):
-        self.record_column = record_column
-        self.length_check = len(record_column)
-        self.data = []
+    def __init__(self, columns):
+        self._columns = columns
+        self._data = []
 
-    def from_old_file(self, file_name: str) -> None:
-        with open(file_name, 'r') as f:
-            lines = f.readlines()
-        for line in lines:
-            elements = line.replace('\n', '').split(',')
-            temp_list = []
-            assert len(elements) == self.length_check
-            for obj in elements:
-                temp_list.append(obj)
+    @property
+    def record_columns(self):
+        return self._columns
 
-            self.data.append(obj)
+    @property
+    def ncols(self):
+        return len(self.record_columns)
+
+    def from_old_file(self, file_name):
+        self._data = pd.read_csv(file_name).values.tolist()
 
     def insert(self, new_data) -> None:
-        if len(new_data) != self.length_check:
+        if len(new_data) != self.ncols:
             raise IndexError('Input data length is not equal to init record length.')
-
-        insertion = [str(obj) for obj in new_data]
-        self.data.append(insertion)
+        self._data.append([str(obj) for obj in new_data])
 
     def write(self, path: str, file_name: str, file_type = '.csv') -> None:
-        logging.info('Start writing recording file ...')
-        with open(os.path.join(path, file_name) + file_type, 'w') as f:
-            lines = self._build_file()
-            f.writelines(lines)
-        logging.info('Recoder writing done.')
-
-    def _build_file(self):
-        lines = ['']
-        for (i, rc) in enumerate(self.record_column):
-            lines[0] = lines[0] + rc + ('\n' if i == len(self.record_column) - 1 else ',')
-
-        for (i, da) in enumerate(self.data):
-            new_lines = ''
-            for (j, bits) in enumerate(da):
-                new_lines = new_lines + bits + \
-                    ('\n' if j == len(da) - 1 else ',')
-            lines.append(new_lines)
-        return lines
+        pd.DataFrame(self._data, columns=self.record_columns).to_csv(
+            os.path.join(path, file_name) + file_type)
