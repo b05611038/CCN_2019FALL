@@ -22,29 +22,34 @@ from lib.agent.snn import SNN
 __all__ = ['PongAgent', 'load_agent']
 
 
+def load_model(agent, path):
+    if agent.model_type.lower() == 'snn':
+        agent.model = bindsnet.network.network.load(path)
+    elif agent.model_type.lower() == 'ann':
+        agent.model = agent.model.cpu()
+        agent.model.load_state_dict(torch.load(path))
+        agent.model = agent.model.to(agent.device)
+    return agent
+
+
 def load_agent(agent_cfg, model_file, device = None):
     state = load_pickle_obj(agent_cfg)
     if state['type'] != 'PongAgent':
-        raise TypeError(path, ' is not a file of Agent object')
- 
-    agent = PongAgent(**state['args'])
-    if agent.model_type.lower() == 'snn':
-        agent.model = bindsnet.network.network.load(model_file)
-    elif agent.model_type.lower() == 'ann':
-        agent.model = agent.model.cpu()
-        agent.model.load_state_dict(torch.load(model_file))
- 
-    if device is not None:
-         agent.device = init_torch_device(device)
-        
-    agent.model = agent.model.to(agent.device)    
+        raise TypeError(agent_cfg, ' is not a file of PongAgent object')
 
+    agent = PongAgent(**state['args'])
+
+    if device is not None:
+        agent.device = init_torch_device(device)
+
+    agent = load_model(agent, model_file)
+    agent.model = agent.model.to(agent.device)
     return agent
 
 
 class PongAgent(Agent):
     def __init__(self, name, model_type, model_config, preprocess_config, policy = None, device = None, **kwargs):
-        super(PongAgent, self).__init__(name, 'Pong-v0')
+        super().__init__(name, 'Pong-v0')
 
         self.device = init_torch_device(device)
 
@@ -55,10 +60,9 @@ class PongAgent(Agent):
         self.transform = Transform(preprocess_config, self.device)
 
         self.model_type = model_type
+        self.model_config = model_config
         self.sim_time = kwargs.get('sim_time', None)
         self.output = kwargs.get('output', None)
-        self.model_config = model_config
-        self.preprocess_config = preprocess_config
         self.policy = policy
         self.memory = None
         self.note = None # episode nums
@@ -69,10 +73,15 @@ class PongAgent(Agent):
             )
 
             self.spike_record = {
-                self.output: torch.zeros((self.time, len(self.agent.action)))
+                self.output: torch.zeros(
+                    (self.sim_time, len(self.action)))
             }
-        
-    def save(self, directory, note = None):
+
+    @property
+    def preprocess_config(self):
+        return self.transform.preprocess_dict
+
+    def save(self, directory: str, note = None) -> None:
         state = {'type': 'PongAgent'}
 
         self.note = note
@@ -101,50 +110,33 @@ class PongAgent(Agent):
         self.model.to(self.device)
         return None
 
-    def load(self, agent_cfg, model_file):
-        device = self.device
-        self = load_agent(agent_cfg, model_file, device = device)
-        return None
+    def load(self, agent_cfg, model_file) -> None:
+        self = load_agent(agent_cfg, model_file, device = self.device)
 
-    def load_model(self, path):
-        if self.model_type.lower() == 'snn':
-            self.model = bindsnet.network.network.load(path)
-        elif self.model_type.lower() == 'ann':
-            self.model = self.model.cpu()
-            self.model.load_state_dict(torch.load(path))
-            self.model = self.model.to(self.device)
+    def load_model(self, path) -> None:
+        load_model(self, path)
 
-        return None
-
-    def rename(self, new_name):
+    def rename(self, new_name) -> None:
         self.name = new_name
-        return None
 
-    def eval(self):
+    def eval(self) -> None:
         self.model = self.model.eval()
-        return None
 
-    def train(self):
+    def train(self) -> None:
         self.model = self.model.train()
-        return None
 
-    def set_policy(self, policy):
+    def set_policy(self, policy) -> None:
         self.policy = policy
-        return None
 
-    def learning(self, state):
-        if not isinstance(state, bool):
-            raise TypeError(state, ' must be a boolean variable.')
-
-        if not self.model_type.lower() == 'snn':
-            raise RuntimeError('Model in agent is not spike neural network, can not set learning state.')
+    def learning(self, state: bool) -> None:
+        if self.model_type.lower() != 'snn':
+            raise RuntimeError('Model in agent is not spike neural network (SNN), unable to set learning state.')
 
         self.model.learning = state
-        return None
 
     def make_action(self, observation, p = None):
         #return processed model observation and action
-        if self.preprocess_config['minus_observation'] == True:
+        if self.preprocess_config['minus_observation']:
             if self.memory is None:
                 raise RuntimeError('Please insert init memory before playing a game.')
 
@@ -174,7 +166,7 @@ class PongAgent(Agent):
     def random_action(self):
         return self.action[random.randint(0, len(self.action) - 1)]
 
-    def insert_memory(self, observation):
+    def insert_memory(self, observation) -> None:
         if isinstance(observation, torch.Tensor):
             observation = observation.numpy()
 
@@ -228,10 +220,9 @@ class PongAgent(Agent):
                 action = self.action[action_index]
                 return action, action_index
 
-    def _check_memory(self):
+    def _check_memory(self) -> None:
         if len(self.memory) > self.max_memory_size:
             self.memory = self.memory[-self.max_memory_size: ]
-        return None
 
     def _init_action(self, select):
         if isinstance(select, (list, tuple)):
@@ -264,3 +255,9 @@ class PongAgent(Agent):
         return model.to(self.device)
 
 
+class PongAgentSNN(PongAgent):
+    pass
+
+
+class PongAgentANN(PongAgent):
+    pass
