@@ -1,22 +1,26 @@
 import lib
 from lib.utils import *
+from abc import ABC, abstractmethod
 
 
 __all__ = ['Agent']
 
 
-class Agent(object):
+class Agent(ABC):
     def __init__(self, name, env_name):
         self.name = name
         self.env_name = env_name
 
+    @abstractmethod
     def save(self):
-        raise NotImplementedError()
+        pass
 
+    @abstractmethod
     def load(self):
-        raise NotImplementedError()
+        pass
 
+    @abstractmethod
     def make_action(self):
-        raise NotImplementedError()
+        pass
 
 
