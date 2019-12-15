@@ -12,7 +12,11 @@ import lib
 
 
 __all__ = ['save_object', 'load_pickle_obj', 'load_json_obj', 'load_config',
-        'init_torch_device', 'Recorder']
+        'init_torch_device', 'Recorder', 'default_to']
+
+
+def default_to(x, d):
+    return d if x is None else x
 
 
 def save_pickle(fname: str, obj) -> None:
@@ -103,7 +107,7 @@ def init_torch_device(select = None):
     else:
         deviceStr = 'cpu'
     device = torch.device(deviceStr)
-    logging.info('Hardware setting done, using device:', deviceStr)
+    logging.info(f'Hardware setting done, using device: {deviceStr}')
     return device
 
 
@@ -117,7 +121,7 @@ class Recorder():
         self.length_check = len(record_column)
         self.data = []
 
-    def from_old_file(self, file_name):
+    def from_old_file(self, file_name: str) -> None:
         with open(file_name, 'r') as f:
             lines = f.readlines()
         for line in lines:
@@ -129,40 +133,29 @@ class Recorder():
 
             self.data.append(obj)
 
-        return None
-
-    def insert(self, new_data):
+    def insert(self, new_data) -> None:
         if len(new_data) != self.length_check:
             raise IndexError('Input data length is not equal to init record length.')
 
         insertion = [str(obj) for obj in new_data]
         self.data.append(insertion)
-        return None
 
-    def write(self, path: str, file_name: str, file_type = '.csv'):
+    def write(self, path: str, file_name: str, file_type = '.csv') -> None:
         logging.info('Start writing recording file ...')
         with open(os.path.join(path, file_name) + file_type, 'w') as f:
             lines = self._build_file()
             f.writelines(lines)
         logging.info('Recoder writing done.')
-        return None
 
     def _build_file(self):
         lines = ['']
         for (i, rc) in enumerate(self.record_column):
-            if i == len(self.record_column) - 1:
-                lines[0] = lines[0] + rc + '\n'
-            else:
-                lines[0] = lines[0] + rc + ','
+            lines[0] = lines[0] + rc + ('\n' if i == len(self.record_column) - 1 else ',')
 
         for (i, da) in enumerate(self.data):
             new_lines = ''
             for (j, bits) in enumerate(da):
-                if j == len(da) - 1:
-                    new_lines = new_lines + bits + '\n'
-                else:
-                    new_lines = new_lines + bits + ','
-
+                new_lines = new_lines + bits + \
+                    ('\n' if j == len(da) - 1 else ',')
             lines.append(new_lines)
-
         return lines
