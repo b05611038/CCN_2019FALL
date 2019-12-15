@@ -5,11 +5,13 @@ import torch
 import bindsnet
 from bindsnet.environment import Environment
 
-
 __all__ = ['GymEnvironment']
 
 
 class GymEnvironment(Environment):
+
+    null_history = {'observations': [], 'actions': [], 'rewards': []}
+
     def __init__(self, env_name = 'Pong-v0', train = True, **kwargs):
         self.env_name = env_name
         self.env = gym.make(env_name)
@@ -27,22 +29,20 @@ class GymEnvironment(Environment):
 
         self.clip_rewards = kwargs.get("clip_rewards", False)
 
-    def seed(self, seed):
+    def seed(self, seed) -> None:
         '''
-        Control the randomness of the environment
+        Control the random seed of the environment
         '''
         self.env.seed(seed)
-        return None
 
     def reset(self):
-        self.history = {'observations': [], 'actions': [], 'rewards': []}
+        self.history = self.null_history
         observation = self.env.reset()
         self.history['observations'].append(observation)
         return np.array(observation)
 
-    def close(self):
+    def close(self) -> None:
         self.env.close()
-        return None
 
     def preprocess(self):
         return None
@@ -89,5 +89,3 @@ class GymEnvironment(Environment):
 
     def get_random_action(self):
         return self.action_space.sample()
-
-
