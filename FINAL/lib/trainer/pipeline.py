@@ -13,6 +13,7 @@ import lib
 from lib.environment import GymEnvironment
 from lib.agent import Agent, PongAgent
 from lib.agent.snn import SNN
+from lib.utils import default_to
 
 
 __all__ = ['PongPipeline']
@@ -35,7 +36,7 @@ class PongPipeline(BasePipeline):
         self.network = self.agent.model
         self.device = self.agent.device
         self.network = self.network.to(self.device)
-        
+
         self.env = environment
         if action_function is None:
             self.action_function = select_softmax
@@ -54,7 +55,7 @@ class PongPipeline(BasePipeline):
         if self.reward_delay is not None:
             assert self.reward_delay > 0
             self.rewards = torch.zeros(self.reward_delay)
-        
+
         # Set up for multiple layers of input layers.
         self.inputs = [
             name
@@ -85,13 +86,11 @@ class PongPipeline(BasePipeline):
 
     def episode(self, iter_num, train = True, test_seed = None, **kwargs):
         if train:
-            print('Start episode: %d ...' % iter_num)
+            print(f'Start episode: {iter_num} ...')
 
         self.reset_state_variables()
         if not train:
-            if test_seed is None:
-                test_seed = 0
-
+            test_seed = default_to(test_seed, 0)
             self.env.seed(test_seed)
 
         for frame_iter in itertools.count():
@@ -100,7 +99,7 @@ class PongPipeline(BasePipeline):
             self.step((obs, reward, done, info), **kwargs)
 
             if frame_iter % 100 == 0 and frame_iter != 0:
-                print('Game frame: %d.' % frame_iter)
+                print(f'Game frame: {frame_iter}.')
 
             if done:
                 break
