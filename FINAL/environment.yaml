@@ -22,7 +22,9 @@ dependencies:
 - scipy
 - pre-commit
 - pip
+- yaml
 - pip:
   - gym
   - gym[atari]
   - foolbox
+  - bindsnet
