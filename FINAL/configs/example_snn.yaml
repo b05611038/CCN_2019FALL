@@ -1,6 +1,6 @@
 # logger
 name: 'SNN'
-device: -1
+device: 1
 episodes: 30000
 checkpoint: 3000
 
