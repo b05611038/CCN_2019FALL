@@ -112,7 +112,7 @@ class SNNTrainer(object):
                     config['model_type'],
                     config['model_config'],
                     config['preprocess'],
-                    self.device
+                    device = self.device
                     )
 
         return agent

@@ -18,3 +18,5 @@ if __name__ == '__main__':
     opt = init_parser()
     trainer = SNNTrainer(opt.config)
     trainer.train()
+
+

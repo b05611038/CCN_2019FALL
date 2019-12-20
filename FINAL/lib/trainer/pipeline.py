@@ -145,14 +145,14 @@ class PongPipeline(BasePipeline):
         obs, reward, done, info = gym_batch
 
         # Place the observations into the inputs.
-        preprocessed = self.agent.preprocess(obs)
+        preprocessed = self.agent.preprocess(obs.cpu())
         shape = [1] * len(preprocessed.shape)
         inputs = {k: preprocessed.repeat(self.time, *shape).unsqueeze(1) for k in self.inputs}
 
         # Run the network on the spike train-encoded inputs.
         self.network.run(inputs = inputs, time = self.time, reward = reward, **kwargs)
         self.agent.model = self.network
-        self.agent.insert_memory(obs)
+        self.agent.insert_memory(obs.cpu())
 
         if self.output is not None:
             self.spike_record[self.output] = (

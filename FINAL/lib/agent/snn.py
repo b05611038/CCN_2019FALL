@@ -9,8 +9,8 @@ import bindsnet
 from bindsnet.network import Network
 from bindsnet.network.topology import Connection
 from bindsnet.network.nodes import Input, LIFNodes, SRM0Nodes
-from bindsnet.learning import NoOp, MSTDP, MSTDPET, Rmax
 
+from .learning import WrapNoOp, WrapMSTDPET, MSTDP, Rmax
 
 __all__ = ['SNN']
 
@@ -64,7 +64,7 @@ class SNN(Network):
         connections = []
         if len(middles) > 0:
              connections.append(Connection(source = inpt, target = middles[0],
-                     nu = nu, wmin = wmin, wmax = wmax))
+                     nu = nu, wmin = wmin, wmax = wmax, update_rule = WrapNoOp))
              for i in range(len(middles) - 1):
                  connections.append(Connection(source = middles[i], target = middles[i + 1],
                          nu = nu, wmin = wmin, wmax = wmax, update_rule = rule))
@@ -88,6 +88,14 @@ class SNN(Network):
         for i in range(len(connections)):
             self.add_connection(connections[i], source = names[i], target = names[i + 1])
 
+    def to(self, device):
+        if self.learning_rule == 'Rmax' or self.learning_rule == 'MSTDP':
+            for key in self.connections:
+                self.connections[key].update_rule.set_device(self.connections[key].w.device)
+
+        self = super(SNN, self).to(device)
+        return self
+
     def _node(self, learning_rule):
         if learning_rule == 'Rmax':
             return SRM0Nodes
@@ -103,11 +111,11 @@ class SNN(Network):
             exit(0)
 
         if rule == 'NoOp':
-            return NoOp
+            return WrapNoOp
         elif rule == 'MSTDP':
             return MSTDP
         elif rule == ' MSTDPET':
-            return MSTDPET
+            return WrapMSTDPET
         elif rule == 'Rmax':
             return Rmax
 
