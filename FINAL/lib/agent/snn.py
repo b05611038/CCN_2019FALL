@@ -1,4 +1,4 @@
-from typing import Optional, Union, Tuple, List, Sequence, Iterable
+from typing import Optional, Dict, Union, Tuple, List, Sequence, Iterable
 
 import numpy as np
 
@@ -11,6 +11,7 @@ from bindsnet.network.topology import Connection
 from bindsnet.network.nodes import Input, LIFNodes, SRM0Nodes
 
 from .learning import WrapNoOp, WrapMSTDPET, MSTDP, Rmax
+
 
 __all__ = ['SNN']
 

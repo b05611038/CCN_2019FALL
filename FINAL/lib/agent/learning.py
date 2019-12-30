@@ -41,6 +41,7 @@ class WrapNoOp(NoOp):
 
     def set_device(self, device):
         self.device = device
+        return None
 
 
 class WrapMSTDPET(MSTDPET):
@@ -65,6 +66,7 @@ class WrapMSTDPET(MSTDPET):
 
     def set_device(self, device):
         self.device = device
+        return None
 
 
 class MSTDP(LearningRule):
@@ -120,6 +122,7 @@ class MSTDP(LearningRule):
 
     def set_device(self, device):
         self.device = device
+        return None
 
     def _connection_update(self, **kwargs) -> None:
         # language=rst
@@ -299,6 +302,7 @@ class Rmax(LearningRule):
 
     def set_device(self, device):
         self.device = device
+        return None
 
     def _connection_update(self, **kwargs) -> None:
         # language=rst

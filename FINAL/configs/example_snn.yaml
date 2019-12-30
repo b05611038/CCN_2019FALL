@@ -1,13 +1,20 @@
 # logger
 name: 'SNN'
 device: -1
-episodes: 30000
-checkpoint: 3000
+episodes: 3000
+checkpoint: 300
 
 # environment
 env:
   env_name: 'Pong-v0'
-  test_num: 10
+  test_num: 5
+
+# data
+dataset:
+  maximum_episode_num: 1
+  reward_preprocess:
+    reward_normalize: True
+    reward_decay: True
 
 # agent
 agent:
@@ -17,7 +24,7 @@ agent:
     img_size: !!python/tuple [1, 84, 84]
     num_layers: 2
     n_neurons: 256
-    learning_rule: 'NoOp'
+    learning_rule: 'MSTDP'
     nu: !!python/tuple [0.0001, 0.01]
     dt: 1.0
     wmin: 0.0

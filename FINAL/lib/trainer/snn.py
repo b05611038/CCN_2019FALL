@@ -10,7 +10,8 @@ import bindsnet
 
 import lib
 from lib.utils import *
-from lib.agent import load_agent, PongAgent
+from lib.agent import load_agent, PongAgent, select_softmax
+from lib.data import SNNReplayBuffer
 from lib.environment import GymEnvironment
 from lib.trainer.pipeline import PongPipeline
 
@@ -27,11 +28,17 @@ class SNNTrainer(object):
         self.device = self._init_device(self.cfg['device'])
         self.env = self._init_env(self.cfg['env'])
         self.agent = self._init_agent(self.cfg['agent'], self.env, self.name)
+
+        self.dataset = SNNReplayBuffer(env = self.env, maximum = self.cfg['dataset']['maximum_episode_num'],
+                preprocess_dict = self.cfg['dataset']['reward_preprocess'])
+
         self.pipeline = PongPipeline(
                 self.agent,
                 self.env,
                 output = "Output Layer",
                 time = self.cfg['agent']['sim_time'],
+                replay_buffer = self.dataset,
+                action_function = select_softmax
                 )
 
         self.record_title = ['episode', 'train_reward', 'test_reward']
@@ -75,8 +82,13 @@ class SNNTrainer(object):
         return None
 
     def _episode(self, iter, test = False):
-        self.pipeline.network.learning = True
+        if self.dataset is not None:
+             self.pipeline.network.learning = True
+        else:
+             self.pipeline.network.learning = False
+
         reward = self.pipeline.episode(iter, train = True)
+        self.pipeline.update_episode_memory()
 
         if test:
             self.pipeline.network.learning = False

@@ -1,13 +1,15 @@
 import itertools
-from typing import Callable, Optional, Tuple, Dict
+import warnings
+from typing import Any, Callable, Optional, Tuple, Dict
 
 import torch
+from torch.utils.data import DataLoader 
+
 import bindsnet
-from bindsnet.pipeline.base_pipeline import BasePipeline
+from bindsnet.pipeline.base_pipeline import BasePipeline, recursive_to
 from bindsnet.network import Network
 from bindsnet.network.nodes import AbstractInput
 from bindsnet.network.monitors import Monitor
-from bindsnet.pipeline.action import select_softmax
 
 import lib
 from lib.environment import GymEnvironment
@@ -37,10 +39,7 @@ class PongPipeline(BasePipeline):
         self.network = self.network.to(self.device)
         
         self.env = environment
-        if action_function is None:
-            self.action_function = select_softmax
-        else:
-            self.action_function = action_function
+        self.action_function = action_function
 
         self.accumulated_reward = 0.0
         self.reward_list = []
@@ -50,6 +49,9 @@ class PongPipeline(BasePipeline):
         self.reward_delay = kwargs.get('reward_delay', None)
         self.time = kwargs.get('time', int(self.agent.model.dt))
         self.skip_first_frame = kwargs.get('skip_first_frame', True)
+        self.replay_buffer = kwargs.get('replay_buffer', None)
+        if self.replay_buffer is None:
+            warnings.warn('Please use replay buffer to handle sparse rewarding condition.')
 
         if self.reward_delay is not None:
             assert self.reward_delay > 0
@@ -83,6 +85,30 @@ class PongPipeline(BasePipeline):
             self.episode(ep)
         return None
 
+    def update_episode_memory(self, **kwargs):
+        if self.replay_buffer is not None:
+            self.network.learning = True
+
+            self.replay_buffer.make(self.replay_buffer.maximum)
+            loader = DataLoader(self.replay_buffer, batch_size = 1, shuffle = False)
+
+            for mini_iter, (observation, reward) in enumerate(loader):
+                observation = observation.to(self.device)
+                reward = reward.to(self.device)
+
+                shape = [1] * len(observation.size()) 
+                inputs = {k: observation.unsqueeze(0).repeat(self.time, *shape).unsqueeze(2) for k in self.inputs}
+
+                self.network.run(inputs = inputs, time = self.time, reward = reward, **kwargs) 
+
+                if mini_iter % 100 == 0 and mini_iter != 0:
+                    print('Update iter: %d' % mini_iter)
+
+            self.agent.model = self.network
+            self.network.learning = False
+
+        return None
+
     def episode(self, iter_num, train = True, test_seed = None, **kwargs):
         if train:
             print('Start episode: %d ...' % iter_num)
@@ -93,11 +119,14 @@ class PongPipeline(BasePipeline):
                 test_seed = 0
 
             self.env.seed(test_seed)
+        else:
+            self.replay_buffer.new_episode()
 
+        self.mini_counter = 0
         for frame_iter in itertools.count():
             obs, reward, done, info = self.env_step()
 
-            self.step((obs, reward, done, info), **kwargs)
+            self.step((obs, reward, done, info), train, **kwargs)
 
             if frame_iter % 100 == 0 and frame_iter != 0:
                 print('Game frame: %d.' % frame_iter)
@@ -139,20 +168,60 @@ class PongPipeline(BasePipeline):
 
         return obs, reward, done, info
 
+    def step(self, batch: Any, train, **kwargs) -> Any:
+        # language=rst
+        """
+        Single step of any pipeline at a high level.
+        :param batch: A batch of inputs to be handed to the ``step_()`` function.
+                      Standard in subclasses of ``BasePipeline``.
+        :return: The output from the subclass's ``step_()`` method, which could be
+            anything. Passed to plotting to accommodate this.
+        """
+        self.step_count += 1
+
+        batch = recursive_to(batch, self.device)
+        step_out = self.step_(batch, train, **kwargs)
+
+        if (
+            self.print_interval is not None
+            and self.step_count % self.print_interval == 0
+        ):
+            print(
+                f"Iteration: {self.step_count} (Time: {time.time() - self.clock:.4f})"
+            )
+            self.clock = time.time()
+
+        self.plots(batch, step_out)
+
+        if self.save_interval is not None and self.step_count % self.save_interval == 0:
+            self.network.save(self.save_dir)
+
+        if self.test_interval is not None and self.step_count % self.test_interval == 0:
+            self.test()
+
+        return step_out
+
     def step_(
-        self, gym_batch: Tuple[torch.Tensor, float, bool, Dict], **kwargs
+        self, gym_batch: Tuple[torch.Tensor, float, bool, Dict], train, **kwargs
     ) -> None:
         obs, reward, done, info = gym_batch
 
         # Place the observations into the inputs.
-        preprocessed = self.agent.preprocess(obs.cpu())
+        preprocessed = self.agent.preprocess(obs)
         shape = [1] * len(preprocessed.shape)
         inputs = {k: preprocessed.repeat(self.time, *shape).unsqueeze(1) for k in self.inputs}
 
+        if self.replay_buffer is not None and train:
+            self.replay_buffer.insert(preprocessed)
+            self.mini_counter += 1
+            if reward != 0:
+                self.replay_buffer.insert_reward(reward, self.mini_counter, done)
+                self.mini_counter = 0
+
         # Run the network on the spike train-encoded inputs.
-        self.network.run(inputs = inputs, time = self.time, reward = reward, **kwargs)
+        self.network.run(inputs = inputs, time = self.time, reward = reward, batch_size = 20, **kwargs)
         self.agent.model = self.network
-        self.agent.insert_memory(obs.cpu())
+        self.agent.insert_memory(obs)
 
         if self.output is not None:
             self.spike_record[self.output] = (

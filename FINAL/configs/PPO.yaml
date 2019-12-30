@@ -1,7 +1,7 @@
 # logger
 name: 'PPO'
 policy: 'PPO'
-device: 1
+device: -1
 episodes: 60000
 checkpoint: 3000
 
