@@ -92,7 +92,7 @@ class SNN(Network):
     def to(self, device):
         if self.learning_rule == 'Rmax' or self.learning_rule == 'MSTDP':
             for key in self.connections:
-                self.connections[key].update_rule.set_device(self.connections[key].w.device)
+                self.connections[key].update_rule.set_device(device)
 
         self = super(SNN, self).to(device)
         return self
