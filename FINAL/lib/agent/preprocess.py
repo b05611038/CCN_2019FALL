@@ -38,6 +38,9 @@ class Transform(object):
         if self.preprocess_dict['minus_observation'] == True:
             observation = self._minus_observation(observation, memory)
 
+        if self.preprocess_dict['random_noise'] == True:
+            observation = self._random_noise(observation)
+
         return observation
 
     def insert_init_memory(self, observation):
@@ -55,6 +58,13 @@ class Transform(object):
         method = [tfs.Resize((84, 84)), tfs.ToTensor()]
 
         return tfs.Compose(method)
+
+    def _random_noise(self, tensor, mean = 0., std = 0.01):
+        noise = torch.normal(mean = mean, std = torch.full(size = tensor.size(),
+                fill_value = std, device = tensor.device))
+
+        tensor += noise
+        return tensor
 
     def _gray_scale(self, tensor, r = 0.2126, g = 0.7125, b = 0.0722):
         tensor = r * tensor[0, :, :] + g * tensor[1, :, :] + b * tensor[2, :, :]
@@ -79,7 +89,7 @@ class Transform(object):
         return (height, length, channel)
 
     def implenmented(self):
-        implemented_list = ['slice_scoreboard', 'gray_scale', 'minus_observation']
+        implemented_list = ['slice_scoreboard', 'gray_scale', 'minus_observation', 'random_noise']
         return implemented_list
 
 

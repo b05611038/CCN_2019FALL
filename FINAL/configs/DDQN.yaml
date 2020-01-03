@@ -38,3 +38,4 @@ agent:
     slice_scoreboard: True
     gray_scale: True
     minus_observation: True  
+    random_noise: False

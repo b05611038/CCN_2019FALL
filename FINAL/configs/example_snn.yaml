@@ -25,7 +25,7 @@ agent:
     num_layers: 2
     n_neurons: 256
     learning_rule: 'MSTDP'
-    nu: !!python/tuple [0.0001, 0.01]
+    nu: !!python/tuple [0.01, 0.1]
     dt: 1.0
     wmin: 0.0
     wmax: 1.0
@@ -33,3 +33,4 @@ agent:
     slice_scoreboard: True
     gray_scale: True
     minus_observation: True
+    random_noise: True
